@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package goServerTest;
+option go_package = ".;goServerTest";
+
+
+service BrokerService {
+    rpc AddBroker(AddBrokerRequest) returns (AddBrokerResponse);
+    rpc SendAdvertisement(SendMessageRequest) returns (SendMessageResponse);
+    rpc SendPublication(SendMessageRequest) returns (SendMessageResponse);
+    rpc SendSubscription(SendMessageRequest) returns (SendMessageResponse);
+    // rpc SendUnsubscription(SendUnsubscriptionRequest) returns (Response);
+    // rpc SendAdvertisementMessage(AdvertisementRequest) returns (SendMessageResponse);
+}
+
+message AddBrokerRequest {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+}
+
+message AddBrokerResponse {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+}
+
+
+// common message structure
+message SendMessageRequest {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+    string subject = 4;
+    string value = 5;
+    string operator = 6; 
+    // string senderIp = 3;
+}
+
+// message SendAdvertisementRequest {
+//     string id = 1;
+//     string ip = 2;
+//     string port = 3;
+//     string message = 4;
+//     CommonContent commonContent = 5;
+// }
+
+// message SendPublicationRequest {
+//     string id = 1;
+//     string ip = 2;
+//     string port = 3;
+//     string message = 4;
+//     CommonContent commonContent = 5;
+// }
+
+// message SendSubscriptionRequest {
+//     string id = 1;
+//     string ip = 2;
+//     string port = 3;
+//     string message = 4;
+//     CommonContent commonContent = 5;
+// }
+
+message SendMessageResponse {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+    string message = 4;
+    // bool success = 5;
+}
+
+// message SendMessageRequest {
+//     string id = 1;
+//     string ip = 2;
+//     string port = 3;
+//     string message = 4;
+// }
+
+// message SendMessageResponse {
+//     string id = 1;
+//     string ip = 2;
+//     string port = 3;
+//     string message = 4;
+// }

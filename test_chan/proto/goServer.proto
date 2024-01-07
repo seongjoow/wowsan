@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package goServerTest;
+option go_package = ".;goServerTest";
+
+
+service GoTestService {
+    rpc GetTestGO (TestRequest) returns (TestResponse);
+}
+
+message TestRequest {
+    string testName = 1;
+}
+
+message TestResponse {
+    string message = 1;
+}

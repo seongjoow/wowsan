@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package broker;
+
+// 서비스 정의
+service BrokerService {
+  rpc Publish(Publication) returns (PublishAck) {}
+  rpc Subscribe(Subscription) returns (stream Publication) {}
+}
+
+// Publication 메시지 정의
+message Publication {
+  string topic = 1;
+  string content = 2;
+}
+
+// Subscription 메시지 정의
+message Subscription {
+  string topic = 1;
+}
+
+// Publish 응답 메시지
+message PublishAck {
+  bool success = 1;
+}
