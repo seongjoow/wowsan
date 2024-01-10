@@ -52,7 +52,9 @@ func ExecutionLoop(ip, port string) {
 		line := scanner.Text()
 		line = strings.TrimSpace(line)
 
-		args := strings.SplitN(line, " ", 4)
+		// args := strings.SplitN(line, " ", 0)
+		args := strings.Split(line, " ")
+
 		if len(args) > 1 {
 			args[1] = strings.TrimSpace(args[1])
 		}
@@ -85,7 +87,40 @@ func ExecutionLoop(ip, port string) {
 		case "srt":
 
 		case "prt":
-		case "send":
+		case "sendAdv":
+			if len(args) != 6 {
+				fmt.Println("Invalid command.")
+				continue
+			}
+			subject := args[1]
+			operator := args[2]
+			value := args[3]
+			brokerIp := args[4]
+			brokerPort := args[5]
+			myId := id
+			myIP := ip
+			myPort := port
+			hopCount := int64(0)
+
+			fmt.Println("sendAdv", subject, operator, value, brokerIp, brokerPort, myId, myIP, myPort, hopCount)
+
+			res, err := rpcClient.RPCSendAdvertisement(
+				brokerIp,
+				brokerPort,
+				subject,
+				operator,
+				value,
+				myId,
+				myIP,
+				myPort,
+				hopCount,
+			)
+
+			if err != nil {
+				log.Fatalf("error: %v", err)
+			}
+			fmt.Println(res.Message)
+
 		default:
 			fmt.Println("Invalid command.")
 		}

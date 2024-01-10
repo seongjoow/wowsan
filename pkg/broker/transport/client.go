@@ -17,6 +17,7 @@ type brokerClient struct {
 
 type BrokerClient interface {
 	RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.AddBrokerResponse, error)
+	RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64) (*pb.SendMessageResponse, error)
 	// RPCSendMessageToBroker(ip string, port int, message string) error
 }
 
@@ -41,6 +42,31 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return &pb.AddBrokerResponse{}, err
+	}
+	return response, nil
+}
+
+func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64) (*pb.SendMessageResponse, error) {
+	ipAddr := ip + ":" + string(port)
+	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
+	if err != nil {
+		log.Fatalf("did not connect: %v\n", err)
+	}
+	defer conn.Close()
+	defer cancel()
+
+	response, err := c.SendAdvertisement(ctx, &pb.SendMessageRequest{
+		Subject:  subject,
+		Operator: operator,
+		Value:    value,
+		Id:       myId,
+		Ip:       myIP,
+		Port:     myPort,
+		HopCount: hopCount,
+	})
+	if err != nil {
+		log.Fatalf("error: %v", err)
+		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
 }

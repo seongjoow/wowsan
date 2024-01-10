@@ -32,8 +32,9 @@ message SendMessageRequest {
     string ip = 2;
     string port = 3;
     string subject = 4;
-    string value = 5;
-    string operator = 6; 
+    string operator = 5;
+    string value = 6; 
+    int64 hopCount = 7;
     // string senderIp = 3;
 }
 
