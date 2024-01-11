@@ -1,6 +1,7 @@
 package model
 
 type Publisher struct {
-	ID    string
-	Topic string
+	ID   string
+	IP   string
+	Port string
 }
