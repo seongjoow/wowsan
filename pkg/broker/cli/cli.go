@@ -16,6 +16,7 @@ import (
 )
 
 func ExecutionLoop(ip, port string) {
+	defaultIP := "localhost"
 	log.Printf("Interactive shell")
 	log.Printf("Commands: join, rings, show, resource")
 	id := ip + ":" + port
@@ -66,12 +67,18 @@ func ExecutionLoop(ip, port string) {
 		switch command {
 		// TODO
 		case "add":
-			if len(args) != 3 {
+			// if len(args) != 3 {
+			// 	fmt.Println("Invalid command.")
+			// 	continue
+			// }
+			// remoteIP := args[1]
+			// remotePort := args[2]
+			if len(args) != 2 {
 				fmt.Println("Invalid command.")
 				continue
 			}
-			remoteIP := args[1]
-			remotePort := args[2]
+			remoteIP := defaultIP
+			remotePort := args[1]
 			myId := id
 			myIP := ip
 			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIP, port)
