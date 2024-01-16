@@ -35,6 +35,7 @@ message SendMessageRequest {
     string operator = 5;
     string value = 6; 
     int64 hopCount = 7;
+    string nodeType = 8;
     // string senderIp = 3;
 }
 

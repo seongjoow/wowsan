@@ -18,10 +18,8 @@ import (
 func ExecutionLoop(ip, port string) {
 	defaultIP := "localhost"
 	log.Printf("Interactive shell")
-	log.Printf("Commands: join, rings, show, resource")
+	log.Printf("Commands: add, show, sendAdv")
 	id := ip + ":" + port
-
-	//
 
 	// rpc server
 	lis, err := net.Listen("tcp", ip+":"+port)
@@ -45,7 +43,6 @@ func ExecutionLoop(ip, port string) {
 	// rpc client
 	rpcClient := grpcClient.NewBrokerClient()
 	scanner := bufio.NewScanner(os.Stdin)
-	// TODO
 
 	fmt.Printf("CMD-> ")
 	for scanner.Scan() {
@@ -65,7 +62,6 @@ func ExecutionLoop(ip, port string) {
 		}
 		command := args[0]
 		switch command {
-		// TODO
 		case "add":
 			// if len(args) != 3 {
 			// 	fmt.Println("Invalid command.")
@@ -80,8 +76,9 @@ func ExecutionLoop(ip, port string) {
 			remoteIP := defaultIP
 			remotePort := args[1]
 			myId := id
-			myIP := ip
-			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIP, port)
+			myIp := ip
+			myPort := port
+			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIp, myPort)
 			if err != nil {
 				log.Fatalf("error: %v", err)
 			}
@@ -91,42 +88,56 @@ func ExecutionLoop(ip, port string) {
 			for _, broker := range localBrokerModel.Brokers {
 				fmt.Println(broker.ID, broker.IP, broker.Port)
 			}
+
 		case "srt":
+			fmt.Println("[SRT]")
+			fmt.Println("------------SRT------------")
+			for _, item := range localBrokerModel.SRT {
+				fmt.Printf("Adv: %s %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value)
+				for i := 0; i < len(item.LastHop); i++ {
+					fmt.Printf("%s | %s | %d\n", item.LastHop[i].ID, item.LastHop[i].NodeType, item.HopCount)
+				}
+				fmt.Println("----------------------------")
+				// fmt.Printf("SRT: %s %s %d\n", item.LastHop[index].ID, item.LastHop[index].NodeType, item.HopCount)
+			}
 
 		case "prt":
-		case "sendAdv":
-			if len(args) != 6 {
-				fmt.Println("Invalid command.")
-				continue
+			for index, item := range localBrokerModel.PRT {
+				fmt.Printf("PRT: %s %s \n", item.LastHop[index].ID, item.LastHop[index].NodeType)
 			}
-			subject := args[1]
-			operator := args[2]
-			value := args[3]
-			brokerIp := args[4]
-			brokerPort := args[5]
-			myId := id
-			myIP := ip
-			myPort := port
-			hopCount := int64(0)
+		// case "sendAdv":
+		// 	if len(args) != 6 {
+		// 		fmt.Println("Invalid command.")
+		// 		continue
+		// 	}
+		// 	subject := args[1]z
+		// 	operator := args[2]
+		// 	value := args[3]
+		// 	brokerIp := args[4]
+		// 	brokerPort := args[5]
+		// 	myId := id
+		// 	myIp := ip
+		// 	myPort := port
+		// 	hopCount := int64(0)
 
-			fmt.Println("sendAdv", subject, operator, value, brokerIp, brokerPort, myId, myIP, myPort, hopCount)
+		// 	fmt.Println("sendAdv", subject, operator, value, brokerIp, brokerPort, myId, myIp, myPort, hopCount)
 
-			res, err := rpcClient.RPCSendAdvertisement(
-				brokerIp,
-				brokerPort,
-				subject,
-				operator,
-				value,
-				myId,
-				myIP,
-				myPort,
-				hopCount,
-			)
+		// 	res, err := rpcClient.RPCSendAdvertisement(
+		// 		brokerIp,
+		// 		brokerPort,
+		// 		subject,
+		// 		operator,
+		// 		value,
+		// 		myId,
+		// 		myIp,
+		// 		myPort,
+		// 		hopCount,
+		// 	)
 
-			if err != nil {
-				log.Fatalf("error: %v", err)
-			}
-			fmt.Println(res.Message)
+		// 	if err != nil {
+		// 		log.Fatalf("error: %v", err)
+		// 	}
+		// 	fmt.Println(res.Message)
 
 		default:
 			fmt.Println("Invalid command.")

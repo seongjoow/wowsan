@@ -22,6 +22,7 @@ type brokerRPCServer struct {
 
 func NewBrokerRPCServer(brokerModel *model.Broker) *brokerRPCServer {
 	rpcClient := grpcClient.NewBrokerClient()
+
 	return &brokerRPCServer{
 		rpcClient:   rpcClient,
 		brokerModel: brokerModel,
@@ -39,9 +40,9 @@ func (brokerRpcServer *brokerRPCServer) AddBroker(ctx context.Context, request *
 }
 
 func (brokerRPCServer *brokerRPCServer) SendAdvertisement(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.HopCount)
+	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.HopCount, request.NodeType)
 	if request.Ip == "" {
-		return &pb.SendMessageResponse{Message: "IP cant be empty"}, nil
+		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 	err := brokerRPCServer.brokerModel.SendAdvertisement(
 		request.Id,
@@ -51,30 +52,13 @@ func (brokerRPCServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		request.Operator,
 		request.Value,
 		request.HopCount,
+		request.NodeType,
 	)
 	if err != nil {
 		log.Fatalf("error: %v", err)
 		return &pb.SendMessageResponse{Message: "fail"}, err
 	}
 	return &pb.SendMessageResponse{Message: "success"}, nil
-
-	// item := &model.SubscriptionRoutingTableItem{
-	// 	Advertisement: model.Advertisement{
-	// 		Key:      request.Subject,
-	// 		Value:    request.Value,
-	// 		Operator: request.Operator,
-	// 	},
-	// 	LastHop: []model.LastHop{
-	// 		Id:   request.Id,
-	// 		Ip:   request.Ip,
-	// 		Port: request.Port,
-	// 	},
-	// }
-	// // srt.
-	// fmt.Print("SendAdvertisement: ", request.Adv)
-	// return &pb.SendAdvertisementResponse{
-	// 	Adv: brokerRPCServer.brokerModel.Adv,
-	// }, nil
 }
 
 // func (s *broker) SendMessage(ctx context.Context, in *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {

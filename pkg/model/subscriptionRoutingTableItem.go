@@ -20,7 +20,7 @@ func NewSRTItem(
 	ip string,
 	port string,
 	hopCount int64,
-
+	nodeType string,
 ) *SubscriptionRoutingTableItem {
 	return &SubscriptionRoutingTableItem{
 		Advertisement: &Advertisement{
@@ -28,19 +28,13 @@ func NewSRTItem(
 			Operator: operator,
 			Value:    value,
 		},
-		LastHop:  []*LastHop{NewLastHop(id, ip, port)},
+		LastHop:  []*LastHop{NewLastHop(id, ip, port, nodeType)},
 		HopCount: hopCount,
 	}
 }
 
-// func (srtItem *SubscriptionRoutingTableItem) SetAdvertisement(subject string, operator string, value string) {
-// 	srtItem.Advertisement.Subject = subject
-// 	srtItem.Advertisement.Operator = operator
-// 	srtItem.Advertisement.Value = value
-// }
-
-func (srtItem *SubscriptionRoutingTableItem) AddLastHop(id string, ip string, port string) {
-	lastHop := NewLastHop(id, ip, port)
+func (srtItem *SubscriptionRoutingTableItem) AddLastHop(id string, ip string, port string, nodeType string) {
+	lastHop := NewLastHop(id, ip, port, nodeType)
 	srtItem.LastHop = append(srtItem.LastHop, lastHop)
 }
 

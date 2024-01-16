@@ -17,7 +17,8 @@ type brokerClient struct {
 
 type BrokerClient interface {
 	RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.AddBrokerResponse, error)
-	RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64) (*pb.SendMessageResponse, error)
+	RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error)
+	RPCSendSubscription(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) // hopCount int64
 	// RPCSendMessageToBroker(ip string, port int, message string) error
 }
 
@@ -46,7 +47,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -63,6 +64,32 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 		Ip:       myIP,
 		Port:     myPort,
 		HopCount: hopCount,
+		NodeType: nodeType,
+	})
+	if err != nil {
+		log.Fatalf("error: %v", err)
+		return &pb.SendMessageResponse{}, err
+	}
+	return response, nil
+}
+
+func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) { // hopCount int64
+	ipAddr := ip + ":" + string(port)
+	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
+	if err != nil {
+		log.Fatalf("did not connect: %v\n", err)
+	}
+	defer conn.Close()
+	defer cancel()
+
+	response, err := c.SendSubscription(ctx, &pb.SendMessageRequest{
+		Subject:  subject,
+		Operator: operator,
+		Value:    value,
+		Id:       myId,
+		Ip:       myIP,
+		Port:     myPort,
+		// HopCount: hopCount,
 	})
 	if err != nil {
 		log.Fatalf("error: %v", err)
