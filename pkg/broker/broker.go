@@ -61,6 +61,27 @@ func (brokerRPCServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
 
+func (brokerRPCServer *brokerRPCServer) SendSubscription(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
+	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.NodeType)
+	if request.Ip == "" {
+		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
+	}
+	err := brokerRPCServer.brokerModel.SendSubscription(
+		request.Id,
+		request.Ip,
+		request.Port,
+		request.Subject,
+		request.Operator,
+		request.Value,
+		request.NodeType,
+	)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+		return &pb.SendMessageResponse{Message: "fail"}, err
+	}
+	return &pb.SendMessageResponse{Message: "success"}, nil
+}
+
 // func (s *broker) SendMessage(ctx context.Context, in *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
 
 // 	return &pb.SendMessageResponse{

@@ -3,6 +3,7 @@ package model
 import (
 	"fmt"
 	"log"
+	"strconv"
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	pb "wowsan/pkg/proto"
@@ -165,36 +166,82 @@ func (b *Broker) AddPublisher(id string, ip string, port string) *Publisher {
 	return publisher
 }
 
-// func (b *Broker) SendSubscription(id string, ip string, port string, subject string, operator string, value string, hopCount int64) error {
-// 	reqPrtItem := NewPRTItem(
-// 		subject,
-// 		operator,
-// 		value,
-// 		id,
-// 		ip,
-// 		port,
-// 		// hopCount,
-// 	)
+func (b *Broker) SendSubscription(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
+	reqPrtItem := NewPRTItem(
+		subject,
+		operator,
+		value,
+		id,
+		ip,
+		port,
+		nodeType,
+		// hopCount,
+	)
 
-// 	for _, item := range b.SRT {
-// 		// advertisement에 subscription이 포함되는 경우,
-// 		// PRT에 추가하고, 해당 advertisement의 last hop으로 subscription 전달
-// 		if item.Advertisement.Subject == reqPrtItem.Subscription.Subject &&
-// 			item.Advertisement.Operator == reqPrtItem.Subscription.Operator {
-// 			advValue, _ := strconv.ParseFloat(item.Advertisement.Value, 64)
-// 			subValue, _ := strconv.ParseFloat(reqPrtItem.Subscription.Value, 64)
-// 			if (item.Advertisement.Operator == ">" && advValue > subValue) ||
-// 				(item.Advertisement.Operator == "<" && advValue < subValue) {
-// 				// PRT에 추가
-// 				b.PRT = append(b.PRT, reqPrtItem)
+	for _, item := range b.SRT {
+		// advertisement에 subscription이 포함되는 경우:
+		// PRT에 추가하고, 해당 advertisement의 last hop으로 subscription 전달함.
+		if item.Advertisement.Subject == reqPrtItem.Subscription.Subject &&
+			item.Advertisement.Operator == reqPrtItem.Subscription.Operator {
+			advValue, _ := strconv.ParseFloat(item.Advertisement.Value, 64)
+			subValue, _ := strconv.ParseFloat(reqPrtItem.Subscription.Value, 64)
 
-// 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
-// 				// (SRT의 last hop을 따라가면서 전달)
-// 				for _, lastHop := range item.LastHop {
-// 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우
+			if (item.Advertisement.Operator == ">" && advValue > subValue) ||
+				(item.Advertisement.Operator == ">=" && advValue >= subValue) ||
+				(item.Advertisement.Operator == "<" && advValue < subValue) ||
+				(item.Advertisement.Operator == "<=" && advValue <= subValue) {
+				// PRT에 추가
+				b.PRT = append(b.PRT, reqPrtItem)
 
-// 				}
-// 			}
-// 		}
-// 	}
-// }
+				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
+				// (SRT의 last hop을 따라가면서 전달)
+				newRequest := &pb.SendMessageRequest{
+					Subject:  subject,
+					Operator: operator,
+					Value:    value,
+					Id:       b.ID,
+					Ip:       b.IP,
+					Port:     b.Port,
+					NodeType: nodeType,
+				}
+
+				// show broker list
+				fmt.Println("==Neighboring Brokers==")
+				for _, lastHop := range item.LastHop {
+					fmt.Printf("%s\n", lastHop.ID)
+				}
+
+				for _, lastHop := range item.LastHop {
+					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
+					if lastHop.NodeType == constants.PUBLISHER {
+						break
+					}
+
+					fmt.Println("--Routing Sub via SRT--")
+					fmt.Println("From: ", b.ID)
+					fmt.Println("To:   ", lastHop.ID)
+					fmt.Println("-----------------------")
+
+					// 새로운 요청을 SRT의 last hop 브로커에게 전송
+					_, err := b.RpcClient.RPCSendSubscription(
+						lastHop.IP,   //remote broker ip
+						lastHop.Port, //remote broker port
+						newRequest.Subject,
+						newRequest.Operator,
+						newRequest.Value,
+						newRequest.Id,
+						newRequest.Ip,
+						newRequest.Port,
+						constants.BROKER,
+					)
+					if err != nil {
+						log.Fatalf("error: %v", err)
+						continue
+					}
+				}
+			}
+		}
+	}
+
+	return nil
+}

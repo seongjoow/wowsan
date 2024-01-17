@@ -13,12 +13,11 @@ import (
 )
 
 func ExecutionLoop(ip, port string) {
-	// defaultIP := "localhost"
 	log.Printf("Interactive shell")
-	log.Printf("Commands: add, adv")
+	log.Printf("Commands: add, sub")
 	id := ip + ":" + port
 
-	publisherModel := model.NewPublisher(id, ip, port)
+	subscriberModel := model.NewSubscriber(id, ip, port)
 
 	// rpc client
 	rpcClient := grpcClient.NewBrokerClient()
@@ -41,10 +40,10 @@ func ExecutionLoop(ip, port string) {
 
 		command := args[0]
 		switch command {
-		case "adv":
+		case "sub":
 			if len(args) != 6 {
-				//sendAdv apple > 100 localhost 55122
-				fmt.Printf("Usage: adv <sbj> <op> <val> <ip> <port>\n")
+				//sub apple = 80 localhost 55122
+				fmt.Printf("Usage: sub <sbj> <op> <val> <ip> <port>\n")
 				continue
 			}
 
@@ -56,31 +55,33 @@ func ExecutionLoop(ip, port string) {
 			myId := id
 			myIp := ip
 			myPort := port
-			hopCount := int64(0)
 
-			if publisherModel.Broker == nil {
+			// if subscriberModel.IsSubscribed(subject, operator, value) {
+			// 	fmt.Printf("Already subscribed\n")
+			// 	continue
+			// }
+
+			if subscriberModel.Broker == nil {
 				response, err := rpcClient.RPCAddBroker(brokerIp, brokerPort, myId, myIp, myPort)
 				if err != nil {
 					log.Fatalf("error: %v", err)
 				}
 
-				publisherModel.SetBroker(response.Id, response.Ip, response.Port)
+				subscriberModel.SetBroker(response.Id, response.Ip, response.Port)
 				fmt.Printf("Added broker: %s %s %s\n", response.Id, response.Ip, response.Port)
 			}
 
-			rpcClient.RPCSendAdvertisement(
-				publisherModel.Broker.IP,
-				publisherModel.Broker.Port,
+			rpcClient.RPCSendSubscription(
+				subscriberModel.Broker.IP,
+				subscriberModel.Broker.Port,
 				subject,
 				operator,
 				value,
-				publisherModel.ID,
-				publisherModel.IP,
-				publisherModel.Port,
-				hopCount,
-				constants.PUBLISHER,
+				subscriberModel.Id,
+				subscriberModel.Ip,
+				subscriberModel.Port,
+				constants.SUBSCRIBER,
 			)
-
 		}
 	}
 }

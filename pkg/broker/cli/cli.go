@@ -102,8 +102,13 @@ func ExecutionLoop(ip, port string) {
 			}
 
 		case "prt":
-			for index, item := range localBrokerModel.PRT {
-				fmt.Printf("PRT: %s %s \n", item.LastHop[index].ID, item.LastHop[index].NodeType)
+			fmt.Println("[PRT]")
+			for _, item := range localBrokerModel.PRT {
+				fmt.Printf("Sub: %s %s %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value)
+				for i := 0; i < len(item.LastHop); i++ {
+					fmt.Printf("%s | %s\n", item.LastHop[i].ID, item.LastHop[i].NodeType)
+				}
+				fmt.Println("----------------------------")
 			}
 		// case "sendAdv":
 		// 	if len(args) != 6 {
