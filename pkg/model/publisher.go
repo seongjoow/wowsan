@@ -1,8 +1,8 @@
 package model
 
 type Publisher struct {
-	ID   string
-	IP   string
+	Id   string
+	Ip   string
 	Port string
 	// Brokers map[string]*Broker
 	Broker *Broker
@@ -10,8 +10,8 @@ type Publisher struct {
 
 func NewPublisher(id string, ip string, port string) *Publisher {
 	return &Publisher{
-		ID:   id,
-		IP:   ip,
+		Id:   id,
+		Ip:   ip,
 		Port: port,
 		// Brokers: make(map[string]*Broker),
 		Broker: nil,
@@ -20,8 +20,8 @@ func NewPublisher(id string, ip string, port string) *Publisher {
 
 func (p *Publisher) SetBroker(id string, ip string, port string) *Broker {
 	broker := &Broker{
-		ID:   id,
-		IP:   ip,
+		Id:   id,
+		Ip:   ip,
 		Port: port,
 	}
 	p.Broker = broker

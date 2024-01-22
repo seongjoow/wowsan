@@ -9,8 +9,9 @@ service BrokerService {
     rpc SendAdvertisement(SendMessageRequest) returns (SendMessageResponse);
     rpc SendPublication(SendMessageRequest) returns (SendMessageResponse);
     rpc SendSubscription(SendMessageRequest) returns (SendMessageResponse);
+    rpc AddPublisher(AddClientRequest) returns (AddClientResponse);
+    rpc AddSubscriber(AddClientRequest) returns (AddClientResponse);
     // rpc SendUnsubscription(SendUnsubscriptionRequest) returns (Response);
-    // rpc SendAdvertisementMessage(AdvertisementRequest) returns (SendMessageResponse);
 }
 
 message AddBrokerRequest {
@@ -39,30 +40,6 @@ message SendMessageRequest {
     // string senderIp = 3;
 }
 
-// message SendAdvertisementRequest {
-//     string id = 1;
-//     string ip = 2;
-//     string port = 3;
-//     string message = 4;
-//     CommonContent commonContent = 5;
-// }
-
-// message SendPublicationRequest {
-//     string id = 1;
-//     string ip = 2;
-//     string port = 3;
-//     string message = 4;
-//     CommonContent commonContent = 5;
-// }
-
-// message SendSubscriptionRequest {
-//     string id = 1;
-//     string ip = 2;
-//     string port = 3;
-//     string message = 4;
-//     CommonContent commonContent = 5;
-// }
-
 message SendMessageResponse {
     string id = 1;
     string ip = 2;
@@ -71,16 +48,15 @@ message SendMessageResponse {
     // bool success = 5;
 }
 
-// message SendMessageRequest {
-//     string id = 1;
-//     string ip = 2;
-//     string port = 3;
-//     string message = 4;
-// }
 
-// message SendMessageResponse {
-//     string id = 1;
-//     string ip = 2;
-//     string port = 3;
-//     string message = 4;
-// }
+message AddClientRequest {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+}
+
+message AddClientResponse {
+    string id = 1;
+    string ip = 2;
+    string port = 3;
+}

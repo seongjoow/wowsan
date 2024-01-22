@@ -23,6 +23,8 @@ const (
 	BrokerService_SendAdvertisement_FullMethodName = "/goServerTest.BrokerService/SendAdvertisement"
 	BrokerService_SendPublication_FullMethodName   = "/goServerTest.BrokerService/SendPublication"
 	BrokerService_SendSubscription_FullMethodName  = "/goServerTest.BrokerService/SendSubscription"
+	BrokerService_AddPublisher_FullMethodName      = "/goServerTest.BrokerService/AddPublisher"
+	BrokerService_AddSubscriber_FullMethodName     = "/goServerTest.BrokerService/AddSubscriber"
 )
 
 // BrokerServiceClient is the client API for BrokerService service.
@@ -33,6 +35,8 @@ type BrokerServiceClient interface {
 	SendAdvertisement(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	SendPublication(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
 	SendSubscription(ctx context.Context, in *SendMessageRequest, opts ...grpc.CallOption) (*SendMessageResponse, error)
+	AddPublisher(ctx context.Context, in *AddClientRequest, opts ...grpc.CallOption) (*AddClientResponse, error)
+	AddSubscriber(ctx context.Context, in *AddClientRequest, opts ...grpc.CallOption) (*AddClientResponse, error)
 }
 
 type brokerServiceClient struct {
@@ -79,6 +83,24 @@ func (c *brokerServiceClient) SendSubscription(ctx context.Context, in *SendMess
 	return out, nil
 }
 
+func (c *brokerServiceClient) AddPublisher(ctx context.Context, in *AddClientRequest, opts ...grpc.CallOption) (*AddClientResponse, error) {
+	out := new(AddClientResponse)
+	err := c.cc.Invoke(ctx, BrokerService_AddPublisher_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *brokerServiceClient) AddSubscriber(ctx context.Context, in *AddClientRequest, opts ...grpc.CallOption) (*AddClientResponse, error) {
+	out := new(AddClientResponse)
+	err := c.cc.Invoke(ctx, BrokerService_AddSubscriber_FullMethodName, in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BrokerServiceServer is the server API for BrokerService service.
 // All implementations must embed UnimplementedBrokerServiceServer
 // for forward compatibility
@@ -87,6 +109,8 @@ type BrokerServiceServer interface {
 	SendAdvertisement(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	SendPublication(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
 	SendSubscription(context.Context, *SendMessageRequest) (*SendMessageResponse, error)
+	AddPublisher(context.Context, *AddClientRequest) (*AddClientResponse, error)
+	AddSubscriber(context.Context, *AddClientRequest) (*AddClientResponse, error)
 	mustEmbedUnimplementedBrokerServiceServer()
 }
 
@@ -105,6 +129,12 @@ func (UnimplementedBrokerServiceServer) SendPublication(context.Context, *SendMe
 }
 func (UnimplementedBrokerServiceServer) SendSubscription(context.Context, *SendMessageRequest) (*SendMessageResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method SendSubscription not implemented")
+}
+func (UnimplementedBrokerServiceServer) AddPublisher(context.Context, *AddClientRequest) (*AddClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddPublisher not implemented")
+}
+func (UnimplementedBrokerServiceServer) AddSubscriber(context.Context, *AddClientRequest) (*AddClientResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddSubscriber not implemented")
 }
 func (UnimplementedBrokerServiceServer) mustEmbedUnimplementedBrokerServiceServer() {}
 
@@ -191,6 +221,42 @@ func _BrokerService_SendSubscription_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BrokerService_AddPublisher_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddClientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).AddPublisher(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_AddPublisher_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).AddPublisher(ctx, req.(*AddClientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BrokerService_AddSubscriber_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddClientRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BrokerServiceServer).AddSubscriber(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BrokerService_AddSubscriber_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BrokerServiceServer).AddSubscriber(ctx, req.(*AddClientRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BrokerService_ServiceDesc is the grpc.ServiceDesc for BrokerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -213,6 +279,14 @@ var BrokerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SendSubscription",
 			Handler:    _BrokerService_SendSubscription_Handler,
+		},
+		{
+			MethodName: "AddPublisher",
+			Handler:    _BrokerService_AddPublisher_Handler,
+		},
+		{
+			MethodName: "AddSubscriber",
+			Handler:    _BrokerService_AddSubscriber_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

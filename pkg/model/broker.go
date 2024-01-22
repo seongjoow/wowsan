@@ -6,13 +6,13 @@ import (
 	"strconv"
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 )
 
 type Broker struct {
 	RpcClient   grpcClient.BrokerClient
-	ID          string
-	IP          string
+	Id          string
+	Ip          string
 	Port        string
 	Brokers     map[string]*Broker
 	Publishers  map[string]*Publisher
@@ -26,8 +26,8 @@ func NewBroker(id, ip, port string) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
 	return &Broker{
 		RpcClient:   rpcClient,
-		ID:          id,
-		IP:          ip,
+		Id:          id,
+		Ip:          ip,
 		Port:        port,
 		Publishers:  make(map[string]*Publisher),
 		Subscribers: make(map[string]*Subscriber),
@@ -38,12 +38,32 @@ func NewBroker(id, ip, port string) *Broker {
 
 func (b *Broker) AddBroker(id string, ip string, port string) *Broker {
 	broker := &Broker{
-		ID:   id,
-		IP:   ip,
+		Id:   id,
+		Ip:   ip,
 		Port: port,
 	}
 	b.Brokers[id] = broker
 	return broker
+}
+
+func (b *Broker) AddPublisher(id string, ip string, port string) *Publisher {
+	publisher := &Publisher{
+		Id:   id,
+		Ip:   ip,
+		Port: port,
+	}
+	b.Publishers[id] = publisher
+	return publisher
+}
+
+func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
+	subscriber := &Subscriber{
+		Id:   id,
+		Ip:   ip,
+		Port: port,
+	}
+	b.Subscribers[id] = subscriber
+	return subscriber
 }
 
 func (b *Broker) SendAdvertisement(id string, ip string, port string, subject string, operator string, value string, hopCount int64, nodeType string) error {
@@ -69,9 +89,7 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 	for index, item := range b.SRT {
 		fmt.Printf("srt: %s %s %s %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.HopCount)
 		fmt.Printf("reqSrtItem: %s %s %s %d\n", reqSrtItem.Advertisement.Subject, reqSrtItem.Advertisement.Operator, reqSrtItem.Advertisement.Value, reqSrtItem.HopCount)
-		if item.Advertisement.Subject == reqSrtItem.Advertisement.Subject &&
-			item.Advertisement.Operator == reqSrtItem.Advertisement.Operator &&
-			item.Advertisement.Value == reqSrtItem.Advertisement.Value {
+		if MatchingEngineSRT(item, reqSrtItem) {
 			if item.HopCount >= reqSrtItem.HopCount {
 				if item.HopCount == reqSrtItem.HopCount {
 					b.SRT[index].AddLastHop(id, ip, port, nodeType)
@@ -87,7 +105,7 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 
 			fmt.Println("============Updated LastHop in SRT============")
 			for _, item := range b.SRT {
-				fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].ID, item.HopCount)
+				fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
 			}
 		}
 	}
@@ -99,7 +117,7 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 		b.SRT = append(b.SRT, reqSrtItem)
 		fmt.Println("============Added New Adv to SRT============")
 		for _, item := range b.SRT {
-			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].ID, item.HopCount)
+			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
 		}
 	}
 	fmt.Println("Len SRT: ", len(b.SRT))
@@ -110,8 +128,8 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 			Subject:  subject,
 			Operator: operator,
 			Value:    value,
-			Id:       b.ID,
-			Ip:       b.IP,
+			Id:       b.Id,
+			Ip:       b.Ip,
 			Port:     b.Port,
 			HopCount: reqSrtItem.HopCount,
 			NodeType: nodeType,
@@ -120,22 +138,22 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 		// show broker list
 		fmt.Println("==Neighboring Brokers==")
 		for _, neighbor := range b.Brokers {
-			fmt.Printf("%s\n", neighbor.ID)
+			fmt.Printf("%s\n", neighbor.Id)
 		}
 
 		for _, neighbor := range b.Brokers {
 			// 온 방향으로는 전송하지 않음
-			if neighbor.ID == id {
+			if neighbor.Id == id {
 				continue
 			}
 			fmt.Println("--Sending to Neighbor--")
-			fmt.Println("From: ", b.ID)
-			fmt.Println("To:   ", neighbor.ID)
+			fmt.Println("From: ", b.Id)
+			fmt.Println("To:   ", neighbor.Id)
 			fmt.Println("-----------------------")
 
 			// 새로운 요청을 이웃에게 전송
 			_, err := b.RpcClient.RPCSendAdvertisement(
-				neighbor.IP,   //remote broker ip
+				neighbor.Ip,   //remote broker ip
 				neighbor.Port, //remote broker port
 				newRequest.Subject,
 				newRequest.Operator,
@@ -154,16 +172,6 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 	}
 
 	return nil
-}
-
-func (b *Broker) AddPublisher(id string, ip string, port string) *Publisher {
-	publisher := &Publisher{
-		ID:   id,
-		IP:   ip,
-		Port: port,
-	}
-	b.Publishers[id] = publisher
-	return publisher
 }
 
 func (b *Broker) SendSubscription(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
@@ -199,32 +207,37 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 					Subject:  subject,
 					Operator: operator,
 					Value:    value,
-					Id:       b.ID,
-					Ip:       b.IP,
+					Id:       b.Id,
+					Ip:       b.Ip,
 					Port:     b.Port,
 					NodeType: nodeType,
 				}
 
-				// show broker list
+				// show neighboring brokers list
 				fmt.Println("==Neighboring Brokers==")
 				for _, lastHop := range item.LastHop {
-					fmt.Printf("%s\n", lastHop.ID)
+					fmt.Printf("%s\n", lastHop.Id)
 				}
 
 				for _, lastHop := range item.LastHop {
-					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
-					if lastHop.NodeType == constants.PUBLISHER {
-						break
-					}
+					// // 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
+					// if lastHop.NodeType == constants.PUBLISHER {
+					// 	for _, publisher := range b.Publishers {
+					// 		if publisher.ID == lastHop.ID {
+					// 			// RPCNotifyPublisher
+					// 		}
+					// 	}
+					// 	break
+					// }
 
 					fmt.Println("--Routing Sub via SRT--")
-					fmt.Println("From: ", b.ID)
-					fmt.Println("To:   ", lastHop.ID)
+					fmt.Println("From: ", b.Id)
+					fmt.Println("To:   ", lastHop.Id)
 					fmt.Println("-----------------------")
 
 					// 새로운 요청을 SRT의 last hop 브로커에게 전송
 					_, err := b.RpcClient.RPCSendSubscription(
-						lastHop.IP,   //remote broker ip
+						lastHop.Ip,   //remote broker ip
 						lastHop.Port, //remote broker port
 						newRequest.Subject,
 						newRequest.Operator,
@@ -238,6 +251,54 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 						log.Fatalf("error: %v", err)
 						continue
 					}
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (b *Broker) SendPublication(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
+	for _, item := range b.PRT {
+		// subscription의 subject와 publication의 subject가 같은 경우:
+		// 해당 subscription의 last hop으로 publication 전달함.
+		if item.Subscription.Subject == subject {
+			// 해당하는 subscription을 보낸 subscriber에게 도달할 때까지 hop-by-hop으로 전달
+			// (PRT의 last hop을 따라가면서 전달)
+
+			// Show broker list
+			fmt.Println("===Matching Last Hop===")
+			for _, lastHop := range item.LastHop {
+				fmt.Printf("%s\n", lastHop.Id)
+			}
+
+			for _, lastHop := range item.LastHop {
+				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
+				if lastHop.NodeType == constants.SUBSCRIBER {
+					break
+				}
+
+				fmt.Println("--Routing Pub via PRT--")
+				fmt.Println("From: ", b.Id)
+				fmt.Println("To:   ", lastHop.Id)
+				fmt.Println("-----------------------")
+
+				// 새로운 요청을 SRT의 last hop 브로커에게 전송
+				_, err := b.RpcClient.RPCSendPublication(
+					lastHop.Ip,   //remote broker ip
+					lastHop.Port, //remote broker port
+					subject,
+					operator,
+					value,
+					b.Id,
+					b.Ip,
+					b.Port,
+					constants.BROKER,
+				)
+				if err != nil {
+					log.Fatalf("error: %v", err)
+					continue
 				}
 			}
 		}

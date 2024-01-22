@@ -10,7 +10,7 @@ import (
 	"wowsan/pkg/broker"
 	grpcClient "wowsan/pkg/broker/transport"
 	model "wowsan/pkg/model"
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 
 	grpc "google.golang.org/grpc"
 )
@@ -84,9 +84,19 @@ func ExecutionLoop(ip, port string) {
 			}
 
 			localBrokerModel.AddBroker(response.Id, response.Ip, response.Port)
-		case "show":
+		case "broker":
 			for _, broker := range localBrokerModel.Brokers {
-				fmt.Println(broker.ID, broker.IP, broker.Port)
+				fmt.Println(broker.Id, broker.Ip, broker.Port)
+			}
+
+		case "publisher":
+			for _, publisher := range localBrokerModel.Publishers {
+				fmt.Println(publisher.Id, publisher.Ip, publisher.Port)
+			}
+
+		case "subscriber":
+			for _, subscriber := range localBrokerModel.Subscribers {
+				fmt.Println(subscriber.Id, subscriber.Ip, subscriber.Port)
 			}
 
 		case "srt":
@@ -95,7 +105,7 @@ func ExecutionLoop(ip, port string) {
 			for _, item := range localBrokerModel.SRT {
 				fmt.Printf("Adv: %s %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value)
 				for i := 0; i < len(item.LastHop); i++ {
-					fmt.Printf("%s | %s | %d\n", item.LastHop[i].ID, item.LastHop[i].NodeType, item.HopCount)
+					fmt.Printf("%s | %s | %d\n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
 				}
 				fmt.Println("----------------------------")
 				// fmt.Printf("SRT: %s %s %d\n", item.LastHop[index].ID, item.LastHop[index].NodeType, item.HopCount)
@@ -106,7 +116,7 @@ func ExecutionLoop(ip, port string) {
 			for _, item := range localBrokerModel.PRT {
 				fmt.Printf("Sub: %s %s %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value)
 				for i := 0; i < len(item.LastHop); i++ {
-					fmt.Printf("%s | %s\n", item.LastHop[i].ID, item.LastHop[i].NodeType)
+					fmt.Printf("%s | %s\n", item.LastHop[i].Id, item.LastHop[i].NodeType)
 				}
 				fmt.Println("----------------------------")
 			}

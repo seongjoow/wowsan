@@ -3,14 +3,13 @@ package broker
 
 import (
 	// "fmt"
-	// "wowsan/pkg/network" // 가정된 네트워크 패키지
 	"fmt"
 	"log"
-	model "wowsan/pkg/model" // 가정된 모델 패키지
+	model "wowsan/pkg/model"
 
 	"context"
 	grpcClient "wowsan/pkg/broker/transport"
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 )
 
 // server is used to implement helloworld.GreeterServer.
@@ -32,19 +31,43 @@ func NewBrokerRPCServer(brokerModel *model.Broker) *brokerRPCServer {
 func (brokerRpcServer *brokerRPCServer) AddBroker(ctx context.Context, request *pb.AddBrokerRequest) (*pb.AddBrokerResponse, error) {
 	brokerRpcServer.brokerModel.AddBroker(request.Id, request.Ip, request.Port)
 	fmt.Printf("AddBroker: %s %s %s\n", request.Id, request.Ip, request.Port)
+
 	return &pb.AddBrokerResponse{
-		Id:   brokerRpcServer.brokerModel.ID,
-		Ip:   brokerRpcServer.brokerModel.IP,
+		Id:   brokerRpcServer.brokerModel.Id,
+		Ip:   brokerRpcServer.brokerModel.Ip,
 		Port: brokerRpcServer.brokerModel.Port,
 	}, nil
 }
 
-func (brokerRPCServer *brokerRPCServer) SendAdvertisement(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
+func (brokerRpcServer *brokerRPCServer) AddPublisher(ctx context.Context, request *pb.AddClientRequest) (*pb.AddClientResponse, error) {
+	brokerRpcServer.brokerModel.AddPublisher(request.Id, request.Ip, request.Port)
+	fmt.Printf("AddPublisher: %s %s %s\n", request.Id, request.Ip, request.Port)
+
+	return &pb.AddClientResponse{
+		Id:   brokerRpcServer.brokerModel.Id,
+		Ip:   brokerRpcServer.brokerModel.Ip,
+		Port: brokerRpcServer.brokerModel.Port,
+	}, nil
+}
+
+func (brokerRpcServer *brokerRPCServer) AddSubscriber(ctx context.Context, request *pb.AddClientRequest) (*pb.AddClientResponse, error) {
+	brokerRpcServer.brokerModel.AddSubscriber(request.Id, request.Ip, request.Port)
+	fmt.Printf("AddSubscriber: %s %s %s\n", request.Id, request.Ip, request.Port)
+
+	return &pb.AddClientResponse{
+		Id:   brokerRpcServer.brokerModel.Id,
+		Ip:   brokerRpcServer.brokerModel.Ip,
+		Port: brokerRpcServer.brokerModel.Port,
+	}, nil
+}
+
+func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
 	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.HopCount, request.NodeType)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
-	err := brokerRPCServer.brokerModel.SendAdvertisement(
+
+	err := brokerRpcServer.brokerModel.SendAdvertisement(
 		request.Id,
 		request.Ip,
 		request.Port,
@@ -58,15 +81,17 @@ func (brokerRPCServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		log.Fatalf("error: %v", err)
 		return &pb.SendMessageResponse{Message: "fail"}, err
 	}
+
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
 
-func (brokerRPCServer *brokerRPCServer) SendSubscription(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
+func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
 	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.NodeType)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
-	err := brokerRPCServer.brokerModel.SendSubscription(
+
+	err := brokerRpcServer.brokerModel.SendSubscription(
 		request.Id,
 		request.Ip,
 		request.Port,
@@ -79,6 +104,7 @@ func (brokerRPCServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		log.Fatalf("error: %v", err)
 		return &pb.SendMessageResponse{Message: "fail"}, err
 	}
+
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
 

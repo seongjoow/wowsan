@@ -1,6 +1,17 @@
-SOURCE_PROTO_PATH = ./pkg/proto
-GO_SERVER_PROTO_PATH = ./pkg/proto
+# Broker Proto
+SOURCE_PROTO_PATH = ./pkg/proto/broker
+GO_SERVER_PROTO_PATH = ./pkg/proto/broker
 GO_PROTO_NAME = broker.proto
+
+# # Publisher Proto
+# SOURCE_PROTO_PATH = ./pkg/proto/publisher
+# GO_SERVER_PROTO_PATH = ./pkg/proto/publisher
+# GO_PROTO_NAME = publisher.proto
+
+# # # Subscriber Proto
+# SOURCE_PROTO_PATH = ./pkg/proto/subscriber
+# GO_SERVER_PROTO_PATH = ./pkg/proto/subscriber
+# GO_PROTO_NAME = subscriber.proto
 
 
 # SOURCE_PROTO_PATH = ../proto

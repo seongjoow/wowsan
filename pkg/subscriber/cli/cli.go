@@ -62,7 +62,7 @@ func ExecutionLoop(ip, port string) {
 			// }
 
 			if subscriberModel.Broker == nil {
-				response, err := rpcClient.RPCAddBroker(brokerIp, brokerPort, myId, myIp, myPort)
+				response, err := rpcClient.RPCAddSubscriber(brokerIp, brokerPort, myId, myIp, myPort)
 				if err != nil {
 					log.Fatalf("error: %v", err)
 				}
@@ -72,7 +72,7 @@ func ExecutionLoop(ip, port string) {
 			}
 
 			rpcClient.RPCSendSubscription(
-				subscriberModel.Broker.IP,
+				subscriberModel.Broker.Ip,
 				subscriberModel.Broker.Port,
 				subject,
 				operator,
@@ -82,6 +82,10 @@ func ExecutionLoop(ip, port string) {
 				subscriberModel.Port,
 				constants.SUBSCRIBER,
 			)
+
+		case "broker":
+			fmt.Println(subscriberModel.Broker.Id, subscriberModel.Broker.Ip, subscriberModel.Broker.Port)
+
 		}
 	}
 }

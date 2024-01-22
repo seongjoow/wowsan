@@ -1,13 +1,13 @@
 package transport
 
-// Brocker RPC Client
+// Broker RPC Client
 
 import (
 	"context"
 	"fmt"
 	"log"
 	"time"
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 
 	grpc "google.golang.org/grpc"
 )
@@ -19,6 +19,10 @@ type BrokerClient interface {
 	RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.AddBrokerResponse, error)
 	RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error)
 	RPCSendSubscription(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) // hopCount int64
+	RPCSendPublication(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error)
+
+	RPCAddPublisher(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error)
+	RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error)
 	// RPCSendMessageToBroker(ip string, port int, message string) error
 }
 
@@ -30,7 +34,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Fatalf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -41,8 +45,50 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("Error: %v", err)
 		return &pb.AddBrokerResponse{}, err
+	}
+	return response, nil
+}
+
+func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error) {
+	ipAddr := ip + ":" + string(port)
+	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
+	if err != nil {
+		log.Fatalf("Did not connect: %v\n", err)
+	}
+	defer conn.Close()
+	defer cancel()
+
+	response, err := c.AddPublisher(ctx, &pb.AddClientRequest{
+		Id:   myId,
+		Ip:   myIP,
+		Port: myPort,
+	})
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+		return &pb.AddClientResponse{}, err
+	}
+	return response, nil
+}
+
+func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error) {
+	ipAddr := ip + ":" + string(port)
+	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
+	if err != nil {
+		log.Fatalf("Did not connect: %v\n", err)
+	}
+	defer conn.Close()
+	defer cancel()
+
+	response, err := c.AddSubscriber(ctx, &pb.AddClientRequest{
+		Id:   myId,
+		Ip:   myIP,
+		Port: myPort,
+	})
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+		return &pb.AddClientResponse{}, err
 	}
 	return response, nil
 }
@@ -51,7 +97,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Fatalf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -67,7 +113,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 		NodeType: nodeType,
 	})
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
@@ -77,7 +123,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, 
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Fatalf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -89,36 +135,46 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, 
 		Id:       myId,
 		Ip:       myIP,
 		Port:     myPort,
+		NodeType: nodeType,
 		// HopCount: hopCount,
 	})
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Fatalf("Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
 }
 
-// func RPCSendMessageToBroker(ip string, port int, message string) error {
-// 	ipAddr := ip + ":" + string(port)
-// 	ctx, c, cancel, err := connectToBrokerServer(ipAddr)
-// 	if err != nil {
-// 		log.Fatalf("did not connect: %v\n", err)
-// 	}
-// 	defer cancel()
-// 	_, err = c.SendMessage(ctx, &pb.SendMessageRequest{
-// 		Message: message,
-// 	})
-// 	if err != nil {
-// 		log.Fatalf("could not greet: %v", err)
-// 	}
-// 	return err
-// }
+func (bc *brokerClient) RPCSendPublication(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) {
+	ipAddr := ip + ":" + string(port)
+	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
+	if err != nil {
+		log.Fatalf("Did not connect: %v\n", err)
+	}
+	defer conn.Close()
+	defer cancel()
+
+	response, err := c.SendPublication(ctx, &pb.SendMessageRequest{
+		Subject:  subject,
+		Operator: operator,
+		Value:    value,
+		Id:       myId,
+		Ip:       myIP,
+		Port:     myPort,
+		// HopCount: hopCount,
+	})
+	if err != nil {
+		log.Fatalf("Error: %v", err)
+		return &pb.SendMessageResponse{}, err
+	}
+	return response, nil
+}
 
 // conncet to gprc server
 func rpcConnectTo(ip string) (pb.BrokerServiceClient, *grpc.ClientConn, context.Context, context.CancelFunc, error) {
 	conn, err := grpc.Dial(ip, grpc.WithInsecure())
 	if err != nil {
-		fmt.Printf("did not connect: %v\n", err)
+		fmt.Printf("Did not connect: %v\n", err)
 		return nil, nil, nil, nil, err
 	}
 

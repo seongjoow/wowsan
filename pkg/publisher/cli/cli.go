@@ -59,7 +59,7 @@ func ExecutionLoop(ip, port string) {
 			hopCount := int64(0)
 
 			if publisherModel.Broker == nil {
-				response, err := rpcClient.RPCAddBroker(brokerIp, brokerPort, myId, myIp, myPort)
+				response, err := rpcClient.RPCAddPublisher(brokerIp, brokerPort, myId, myIp, myPort)
 				if err != nil {
 					log.Fatalf("error: %v", err)
 				}
@@ -69,17 +69,55 @@ func ExecutionLoop(ip, port string) {
 			}
 
 			rpcClient.RPCSendAdvertisement(
-				publisherModel.Broker.IP,
+				publisherModel.Broker.Ip,
 				publisherModel.Broker.Port,
 				subject,
 				operator,
 				value,
-				publisherModel.ID,
-				publisherModel.IP,
+				publisherModel.Id,
+				publisherModel.Ip,
 				publisherModel.Port,
 				hopCount,
 				constants.PUBLISHER,
 			)
+
+		case "pub":
+			if len(args) != 6 {
+				//sendAdv apple > 100 localhost 55122
+				fmt.Printf("Usage: pub <sbj> <op> <val> <ip> <port>\n")
+				continue
+			}
+
+			subject := args[1]
+			operator := args[2]
+			value := args[3]
+			brokerIp := args[4]
+			brokerPort := args[5]
+			myId := id
+			myIp := ip
+			myPort := port
+
+			if publisherModel.Broker == nil {
+				fmt.Printf("This publisher is not registered to the broker.\n")
+			}
+
+			// if brokerIp != publisherModel.Broker.Ip || brokerPort != publisherModel.Broker.Port {
+			// }
+
+			rpcClient.RPCSendPublication(
+				brokerIp,
+				brokerPort,
+				subject,
+				operator,
+				value,
+				myId,
+				myIp,
+				myPort,
+				constants.PUBLISHER,
+			)
+
+		case "broker":
+			fmt.Println(publisherModel.Broker.Id, publisherModel.Broker.Ip, publisherModel.Broker.Port)
 
 		}
 	}

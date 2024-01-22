@@ -5,7 +5,7 @@ import (
 	"net"
 	"wowsan/pkg/broker"
 	model "wowsan/pkg/model"
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 
 	grpcClient "wowsan/pkg/broker/transport"
 

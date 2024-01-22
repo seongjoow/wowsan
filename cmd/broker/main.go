@@ -9,7 +9,7 @@ import (
 	model "wowsan/pkg/model" // 가정된 모델 패키지
 
 	// "wowsan/pkg/network"     // 네트워크 패키지 경로는 프로젝트에 따라 다를 수 있습니다.
-	pb "wowsan/pkg/proto"
+	pb "wowsan/pkg/proto/broker"
 
 	grpc "google.golang.org/grpc"
 )
