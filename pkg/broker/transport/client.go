@@ -45,7 +45,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.AddBrokerResponse{}, err
 	}
 	return response, nil
@@ -66,7 +66,7 @@ func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIP, myPort string) (*p
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.AddClientResponse{}, err
 	}
 	return response, nil
@@ -87,7 +87,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.AddClientResponse{}, err
 	}
 	return response, nil
@@ -113,7 +113,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 		NodeType: nodeType,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
@@ -139,7 +139,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, 
 		// HopCount: hopCount,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
@@ -164,7 +164,7 @@ func (bc *brokerClient) RPCSendPublication(ip, port, subject, operator, value, m
 		// HopCount: hopCount,
 	})
 	if err != nil {
-		log.Fatalf("Error: %v", err)
+		log.Fatalf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil

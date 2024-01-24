@@ -68,7 +68,7 @@ func ExecutionLoop(ip, port string) {
 				}
 
 				subscriberModel.SetBroker(response.Id, response.Ip, response.Port)
-				fmt.Printf("Added broker: %s %s %s\n", response.Id, response.Ip, response.Port)
+				fmt.Printf("Set broker: %s %s %s\n", response.Id, response.Ip, response.Port)
 			}
 
 			rpcClient.RPCSendSubscription(

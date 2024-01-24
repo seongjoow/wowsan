@@ -220,20 +220,21 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 				}
 
 				for _, lastHop := range item.LastHop {
-					// // 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
-					// if lastHop.NodeType == constants.PUBLISHER {
+					fmt.Println("--Routing Sub via SRT--")
+					fmt.Println("From: ", b.Id)
+					fmt.Println("To:   ", lastHop.Id)
+					fmt.Println("-----------------------")
+
+					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
+					if lastHop.NodeType == constants.PUBLISHER {
+						fmt.Printf("Subscription Reached Publisher %s\n", lastHop.Id)
+						break
+					}
 					// 	for _, publisher := range b.Publishers {
 					// 		if publisher.ID == lastHop.ID {
 					// 			// RPCNotifyPublisher
 					// 		}
 					// 	}
-					// 	break
-					// }
-
-					fmt.Println("--Routing Sub via SRT--")
-					fmt.Println("From: ", b.Id)
-					fmt.Println("To:   ", lastHop.Id)
-					fmt.Println("-----------------------")
 
 					// 새로운 요청을 SRT의 last hop 브로커에게 전송
 					_, err := b.RpcClient.RPCSendSubscription(
@@ -274,15 +275,16 @@ func (b *Broker) SendPublication(id string, ip string, port string, subject stri
 			}
 
 			for _, lastHop := range item.LastHop {
-				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
-				if lastHop.NodeType == constants.SUBSCRIBER {
-					break
-				}
-
 				fmt.Println("--Routing Pub via PRT--")
 				fmt.Println("From: ", b.Id)
 				fmt.Println("To:   ", lastHop.Id)
 				fmt.Println("-----------------------")
+
+				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
+				if lastHop.NodeType == constants.SUBSCRIBER {
+					fmt.Printf("Publication Reached Subscriber %s\n", lastHop.Id)
+					break
+				}
 
 				// 새로운 요청을 SRT의 last hop 브로커에게 전송
 				_, err := b.RpcClient.RPCSendPublication(
