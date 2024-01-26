@@ -39,6 +39,7 @@ func ExecutionLoop(ip, port string) {
 	// }
 	go s.Serve(lis)
 	go localBrokerModel.DoAdvertisementQueue()
+	go localBrokerModel.DoSubscriptionQueue()
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 
@@ -102,8 +103,8 @@ func ExecutionLoop(ip, port string) {
 			}
 
 		case "srt":
-			fmt.Println("[SRT]")
-			fmt.Println("------------SRT------------")
+			// fmt.Println("[SRT]")
+			fmt.Println("-----------[SRT]-----------")
 			for _, item := range localBrokerModel.SRT {
 				fmt.Printf("Adv: %s %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value)
 				for i := 0; i < len(item.LastHop); i++ {
@@ -114,7 +115,8 @@ func ExecutionLoop(ip, port string) {
 			}
 
 		case "prt":
-			fmt.Println("[PRT]")
+			// fmt.Println("[PRT]")
+			fmt.Println("-----------[PRT]-----------")
 			for _, item := range localBrokerModel.PRT {
 				fmt.Printf("Sub: %s %s %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value)
 				for i := 0; i < len(item.LastHop); i++ {

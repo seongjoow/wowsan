@@ -22,6 +22,7 @@ type Broker struct {
 
 	// queue for advertisement
 	AdvertisementQueue chan *AdvertisementRequest
+	SubscriptionQueue  chan *SubscriptionRequest
 }
 
 // public func
@@ -29,15 +30,16 @@ func NewBroker(id, ip, port string) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
 
 	return &Broker{
-		RpcClient:          rpcClient,
-		Id:                 id,
-		Ip:                 ip,
-		Port:               port,
-		Publishers:         make(map[string]*Publisher),
-		Subscribers:        make(map[string]*Subscriber),
-		Brokers:            make(map[string]*Broker),
-		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
+		RpcClient:   rpcClient,
+		Id:          id,
+		Ip:          ip,
+		Port:        port,
+		Publishers:  make(map[string]*Publisher),
+		Subscribers: make(map[string]*Subscriber),
+		Brokers:     make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0), // 필요함?
+		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
+		SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
 	}
 }
 
@@ -71,7 +73,7 @@ func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
 	return subscriber
 }
 
-// go routine
+// go routine 1
 func (b *Broker) DoAdvertisementQueue() {
 	for {
 		select {
@@ -198,16 +200,34 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 	return nil
 }
 
-func (b *Broker) SendSubscription(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
+// go routine 2
+func (b *Broker) DoSubscriptionQueue() {
+	for {
+		select {
+		case reqPrtItem := <-b.SubscriptionQueue:
+			if reqPrtItem == nil {
+				continue
+			}
+			b.SendSubscription(
+				reqPrtItem,
+			)
+		}
+	}
+}
+
+func (b *Broker) PushSubscriptionToQueue(req *SubscriptionRequest) {
+	b.SubscriptionQueue <- req
+}
+
+func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 	reqPrtItem := NewPRTItem(
-		id,
-		ip,
-		port,
-		subject,
-		operator,
-		value,
-		nodeType,
-		// hopCount,
+		subReq.Id,
+		subReq.Ip,
+		subReq.Port,
+		subReq.Subject,
+		subReq.Operator,
+		subReq.Value,
+		subReq.NodeType,
 	)
 
 	for _, item := range b.SRT {
@@ -231,10 +251,10 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 					Id:       b.Id,
 					Ip:       b.Ip,
 					Port:     b.Port,
-					Subject:  subject,
-					Operator: operator,
-					Value:    value,
-					NodeType: nodeType,
+					Subject:  subReq.Subject,
+					Operator: subReq.Operator,
+					Value:    subReq.Value,
+					NodeType: subReq.NodeType,
 				}
 
 				// show neighboring brokers list

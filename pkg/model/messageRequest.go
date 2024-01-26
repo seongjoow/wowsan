@@ -11,17 +11,17 @@ type AdvertisementRequest struct {
 	NodeType string
 }
 
-// type PublicationRequest struct {
-// 	Id       string
-// 	Ip       string
-// 	Port     string
-// 	Subject  string
-// 	Operator string
-// 	Value    string
-// 	NodeType string
-// }
+type SubscriptionRequest struct {
+	Id       string
+	Ip       string
+	Port     string
+	Subject  string
+	Operator string
+	Value    string
+	NodeType string
+}
 
-// type SubscriptionRequest struct {
+// type PublicationRequest struct {
 // 	Id       string
 // 	Ip       string
 // 	Port     string

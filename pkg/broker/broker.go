@@ -4,7 +4,6 @@ package broker
 import (
 	// "fmt"
 	"fmt"
-	"log"
 	model "wowsan/pkg/model"
 
 	"context"
@@ -80,6 +79,7 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		},
 	)
 
+	// 메세지 큐 구현 전 코드
 	// err := brokerRpcServer.brokerModel.SendAdvertisement(
 	// 	request.Id,
 	// 	request.Ip,
@@ -104,19 +104,32 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	err := brokerRpcServer.brokerModel.SendSubscription(
-		request.Id,
-		request.Ip,
-		request.Port,
-		request.Subject,
-		request.Operator,
-		request.Value,
-		request.NodeType,
+	brokerRpcServer.brokerModel.PushSubscriptionToQueue(
+		&model.SubscriptionRequest{
+			Id:       request.Id,
+			Ip:       request.Ip,
+			Port:     request.Port,
+			Subject:  request.Subject,
+			Operator: request.Operator,
+			Value:    request.Value,
+			NodeType: request.NodeType,
+		},
 	)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-		return &pb.SendMessageResponse{Message: "fail"}, err
-	}
+
+	// 메세지 큐 구현 전 코드
+	// err := brokerRpcServer.brokerModel.SendSubscription(
+	// 	request.Id,
+	// 	request.Ip,
+	// 	request.Port,
+	// 	request.Subject,
+	// 	request.Operator,
+	// 	request.Value,
+	// 	request.NodeType,
+	// )
+	// if err != nil {
+	// 	log.Fatalf("error: %v", err)
+	// 	return &pb.SendMessageResponse{Message: "fail"}, err
+	// }
 
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
