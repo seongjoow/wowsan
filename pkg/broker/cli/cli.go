@@ -34,10 +34,12 @@ func ExecutionLoop(ip, port string) {
 
 	pb.RegisterBrokerServiceServer(s, server)
 
-	go s.Serve(lis)
 	// if err := s.Serve(lis); err != nil {
 	// 	log.Fatalf("failed to serve: %v\n", err)
 	// }
+	go s.Serve(lis)
+	go localBrokerModel.DoAdvertisementQueue()
+
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 
 	// rpc client

@@ -19,19 +19,24 @@ type Broker struct {
 	Subscribers map[string]*Subscriber
 	SRT         []*SubscriptionRoutingTableItem
 	PRT         []*PublicationRoutingTableItem
+
+	// queue for advertisement
+	AdvertisementQueue chan *AdvertisementRequest
 }
 
 // public func
 func NewBroker(id, ip, port string) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
+
 	return &Broker{
-		RpcClient:   rpcClient,
-		Id:          id,
-		Ip:          ip,
-		Port:        port,
-		Publishers:  make(map[string]*Publisher),
-		Subscribers: make(map[string]*Subscriber),
-		Brokers:     make(map[string]*Broker),
+		RpcClient:          rpcClient,
+		Id:                 id,
+		Ip:                 ip,
+		Port:               port,
+		Publishers:         make(map[string]*Publisher),
+		Subscribers:        make(map[string]*Subscriber),
+		Brokers:            make(map[string]*Broker),
+		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0), // 필요함?
 	}
 }
@@ -66,18 +71,37 @@ func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
 	return subscriber
 }
 
-func (b *Broker) SendAdvertisement(id string, ip string, port string, subject string, operator string, value string, hopCount int64, nodeType string) error {
+// go routine
+func (b *Broker) DoAdvertisementQueue() {
+	for {
+		select {
+		case reqSrtItem := <-b.AdvertisementQueue:
+			if reqSrtItem == nil {
+				continue
+			}
+			b.SendAdvertisement(
+				reqSrtItem,
+			)
+		}
+	}
+}
+
+func (b *Broker) PushAdvertisementToQueue(req *AdvertisementRequest) {
+	b.AdvertisementQueue <- req
+}
+
+func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 	// srt := b.SRT
 
 	reqSrtItem := NewSRTItem(
-		subject,
-		operator,
-		value,
-		id,
-		ip,
-		port,
-		hopCount+1,
-		nodeType,
+		advReq.Id,
+		advReq.Ip,
+		advReq.Port,
+		advReq.Subject,
+		advReq.Operator,
+		advReq.Value,
+		advReq.HopCount+1,
+		advReq.NodeType,
 	)
 
 	isExist := false
@@ -92,7 +116,7 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 		if MatchingEngineSRT(item, reqSrtItem) {
 			if item.HopCount >= reqSrtItem.HopCount {
 				if item.HopCount == reqSrtItem.HopCount {
-					b.SRT[index].AddLastHop(id, ip, port, nodeType)
+					b.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
 				}
 				if item.HopCount > reqSrtItem.HopCount {
 					// reqSrtItem.HopCount += 1
@@ -125,14 +149,14 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
 	if isExist == false || isShorter == true {
 		newRequest := &pb.SendMessageRequest{
-			Subject:  subject,
-			Operator: operator,
-			Value:    value,
 			Id:       b.Id,
 			Ip:       b.Ip,
 			Port:     b.Port,
+			Subject:  advReq.Subject,
+			Operator: advReq.Operator,
+			Value:    advReq.Value,
 			HopCount: reqSrtItem.HopCount,
-			NodeType: nodeType,
+			NodeType: advReq.NodeType,
 		}
 
 		// show broker list
@@ -143,7 +167,7 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 
 		for _, neighbor := range b.Brokers {
 			// 온 방향으로는 전송하지 않음
-			if neighbor.Id == id {
+			if neighbor.Id == advReq.Id {
 				continue
 			}
 			fmt.Println("--Sending to Neighbor--")
@@ -155,12 +179,12 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 			_, err := b.RpcClient.RPCSendAdvertisement(
 				neighbor.Ip,   //remote broker ip
 				neighbor.Port, //remote broker port
-				newRequest.Subject,
-				newRequest.Operator,
-				newRequest.Value,
 				newRequest.Id,
 				newRequest.Ip,
 				newRequest.Port,
+				newRequest.Subject,
+				newRequest.Operator,
+				newRequest.Value,
 				newRequest.HopCount,
 				constants.BROKER,
 			)
@@ -176,12 +200,12 @@ func (b *Broker) SendAdvertisement(id string, ip string, port string, subject st
 
 func (b *Broker) SendSubscription(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
 	reqPrtItem := NewPRTItem(
-		subject,
-		operator,
-		value,
 		id,
 		ip,
 		port,
+		subject,
+		operator,
+		value,
 		nodeType,
 		// hopCount,
 	)
@@ -204,12 +228,12 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
 				// (SRT의 last hop을 따라가면서 전달)
 				newRequest := &pb.SendMessageRequest{
-					Subject:  subject,
-					Operator: operator,
-					Value:    value,
 					Id:       b.Id,
 					Ip:       b.Ip,
 					Port:     b.Port,
+					Subject:  subject,
+					Operator: operator,
+					Value:    value,
 					NodeType: nodeType,
 				}
 
@@ -240,12 +264,12 @@ func (b *Broker) SendSubscription(id string, ip string, port string, subject str
 					_, err := b.RpcClient.RPCSendSubscription(
 						lastHop.Ip,   //remote broker ip
 						lastHop.Port, //remote broker port
-						newRequest.Subject,
-						newRequest.Operator,
-						newRequest.Value,
 						newRequest.Id,
 						newRequest.Ip,
 						newRequest.Port,
+						newRequest.Subject,
+						newRequest.Operator,
+						newRequest.Value,
 						constants.BROKER,
 					)
 					if err != nil {
@@ -290,12 +314,12 @@ func (b *Broker) SendPublication(id string, ip string, port string, subject stri
 				_, err := b.RpcClient.RPCSendPublication(
 					lastHop.Ip,   //remote broker ip
 					lastHop.Port, //remote broker port
-					subject,
-					operator,
-					value,
 					b.Id,
 					b.Ip,
 					b.Port,
+					subject,
+					operator,
+					value,
 					constants.BROKER,
 				)
 				if err != nil {

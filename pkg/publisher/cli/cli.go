@@ -71,12 +71,12 @@ func ExecutionLoop(ip, port string) {
 			rpcClient.RPCSendAdvertisement(
 				publisherModel.Broker.Ip,
 				publisherModel.Broker.Port,
-				subject,
-				operator,
-				value,
 				publisherModel.Id,
 				publisherModel.Ip,
 				publisherModel.Port,
+				subject,
+				operator,
+				value,
 				hopCount,
 				constants.PUBLISHER,
 			)
@@ -107,12 +107,12 @@ func ExecutionLoop(ip, port string) {
 			rpcClient.RPCSendPublication(
 				brokerIp,
 				brokerPort,
-				subject,
-				operator,
-				value,
 				myId,
 				myIp,
 				myPort,
+				subject,
+				operator,
+				value,
 				constants.PUBLISHER,
 			)
 

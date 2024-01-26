@@ -74,12 +74,12 @@ func ExecutionLoop(ip, port string) {
 			rpcClient.RPCSendSubscription(
 				subscriberModel.Broker.Ip,
 				subscriberModel.Broker.Port,
-				subject,
-				operator,
-				value,
 				subscriberModel.Id,
 				subscriberModel.Ip,
 				subscriberModel.Port,
+				subject,
+				operator,
+				value,
 				constants.SUBSCRIBER,
 			)
 

@@ -13,12 +13,12 @@ type SubscriptionRoutingTableItem struct {
 }
 
 func NewSRTItem(
-	subject string,
-	operator string,
-	value string,
 	id string,
 	ip string,
 	port string,
+	subject string,
+	operator string,
+	value string,
 	hopCount int64,
 	nodeType string,
 ) *SubscriptionRoutingTableItem {

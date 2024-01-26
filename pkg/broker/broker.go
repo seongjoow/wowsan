@@ -62,31 +62,44 @@ func (brokerRpcServer *brokerRPCServer) AddSubscriber(ctx context.Context, reque
 }
 
 func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.HopCount, request.NodeType)
+	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.HopCount, request.NodeType)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	err := brokerRpcServer.brokerModel.SendAdvertisement(
-		request.Id,
-		request.Ip,
-		request.Port,
-		request.Subject,
-		request.Operator,
-		request.Value,
-		request.HopCount,
-		request.NodeType,
+	brokerRpcServer.brokerModel.PushAdvertisementToQueue(
+		&model.AdvertisementRequest{
+			Id:       request.Id,
+			Ip:       request.Ip,
+			Port:     request.Port,
+			Subject:  request.Subject,
+			Operator: request.Operator,
+			Value:    request.Value,
+			HopCount: request.HopCount,
+			NodeType: request.NodeType,
+		},
 	)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-		return &pb.SendMessageResponse{Message: "fail"}, err
-	}
+
+	// err := brokerRpcServer.brokerModel.SendAdvertisement(
+	// 	request.Id,
+	// 	request.Ip,
+	// 	request.Port,
+	// 	request.Subject,
+	// 	request.Operator,
+	// 	request.Value,
+	// 	request.HopCount,
+	// 	request.NodeType,
+	// )
+	// if err != nil {
+	// 	log.Fatalf("error: %v", err)
+	// 	return &pb.SendMessageResponse{Message: "fail"}, err
+	// }
 
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
 
 func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s\n", request.Subject, request.Operator, request.Value, request.Id, request.Ip, request.Port, request.NodeType)
+	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.NodeType)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}

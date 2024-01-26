@@ -13,12 +13,12 @@ type PublicationRoutingTableItem struct {
 }
 
 func NewPRTItem(
-	subject string,
-	operator string,
-	value string,
 	id string,
 	ip string,
 	port string,
+	subject string,
+	operator string,
+	value string,
 	nodeType string,
 	// hopCount int64,
 ) *PublicationRoutingTableItem {

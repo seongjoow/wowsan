@@ -16,13 +16,14 @@ type brokerClient struct {
 }
 
 type BrokerClient interface {
-	RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.AddBrokerResponse, error)
-	RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error)
-	RPCSendSubscription(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) // hopCount int64
-	RPCSendPublication(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error)
+	RPCAddBroker(ip, port, myId, myIp, myPort string) (*pb.AddBrokerResponse, error)
+	RPCAddPublisher(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
+	RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
 
-	RPCAddPublisher(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error)
-	RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error)
+	RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error)
+	RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error) // hopCount int64
+	RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error)
+
 	// RPCSendMessageToBroker(ip string, port int, message string) error
 }
 
@@ -30,7 +31,7 @@ func NewBrokerClient() BrokerClient {
 	return &brokerClient{}
 }
 
-func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.AddBrokerResponse, error) {
+func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIp, myPort string) (*pb.AddBrokerResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -41,7 +42,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 
 	response, err := c.AddBroker(ctx, &pb.AddBrokerRequest{
 		Id:   myId,
-		Ip:   myIP,
+		Ip:   myIp,
 		Port: myPort,
 	})
 	if err != nil {
@@ -51,7 +52,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIP, myPort string) (*pb.A
 	return response, nil
 }
 
-func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error) {
+func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -62,7 +63,7 @@ func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIP, myPort string) (*p
 
 	response, err := c.AddPublisher(ctx, &pb.AddClientRequest{
 		Id:   myId,
-		Ip:   myIP,
+		Ip:   myIp,
 		Port: myPort,
 	})
 	if err != nil {
@@ -72,7 +73,7 @@ func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIP, myPort string) (*p
 	return response, nil
 }
 
-func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*pb.AddClientResponse, error) {
+func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -83,7 +84,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*
 
 	response, err := c.AddSubscriber(ctx, &pb.AddClientRequest{
 		Id:   myId,
-		Ip:   myIP,
+		Ip:   myIp,
 		Port: myPort,
 	})
 	if err != nil {
@@ -93,7 +94,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIP, myPort string) (*
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value, myId, myIP, myPort string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -103,12 +104,12 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 	defer cancel()
 
 	response, err := c.SendAdvertisement(ctx, &pb.SendMessageRequest{
+		Id:       myId,
+		Ip:       myIp,
+		Port:     myPort,
 		Subject:  subject,
 		Operator: operator,
 		Value:    value,
-		Id:       myId,
-		Ip:       myIP,
-		Port:     myPort,
 		HopCount: hopCount,
 		NodeType: nodeType,
 	})
@@ -119,7 +120,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, subject, operator, value,
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) { // hopCount int64
+func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error) { // hopCount int64
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -129,12 +130,12 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, 
 	defer cancel()
 
 	response, err := c.SendSubscription(ctx, &pb.SendMessageRequest{
+		Id:       myId,
+		Ip:       myIp,
+		Port:     myPort,
 		Subject:  subject,
 		Operator: operator,
 		Value:    value,
-		Id:       myId,
-		Ip:       myIP,
-		Port:     myPort,
 		NodeType: nodeType,
 		// HopCount: hopCount,
 	})
@@ -145,7 +146,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, subject, operator, value, 
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendPublication(ip, port, subject, operator, value, myId, myIP, myPort, nodeType string) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -155,12 +156,12 @@ func (bc *brokerClient) RPCSendPublication(ip, port, subject, operator, value, m
 	defer cancel()
 
 	response, err := c.SendPublication(ctx, &pb.SendMessageRequest{
+		Id:       myId,
+		Ip:       myIp,
+		Port:     myPort,
 		Subject:  subject,
 		Operator: operator,
 		Value:    value,
-		Id:       myId,
-		Ip:       myIP,
-		Port:     myPort,
 		// HopCount: hopCount,
 	})
 	if err != nil {
@@ -170,7 +171,7 @@ func (bc *brokerClient) RPCSendPublication(ip, port, subject, operator, value, m
 	return response, nil
 }
 
-// conncet to gprc server
+// Conncet to gprc server
 func rpcConnectTo(ip string) (pb.BrokerServiceClient, *grpc.ClientConn, context.Context, context.CancelFunc, error) {
 	conn, err := grpc.Dial(ip, grpc.WithInsecure())
 	if err != nil {
