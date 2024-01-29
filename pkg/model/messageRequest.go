@@ -21,12 +21,12 @@ type SubscriptionRequest struct {
 	NodeType string
 }
 
-// type PublicationRequest struct {
-// 	Id       string
-// 	Ip       string
-// 	Port     string
-// 	Subject  string
-// 	Operator string
-// 	Value    string
-// 	NodeType string
-// }
+type PublicationRequest struct {
+	Id       string
+	Ip       string
+	Port     string
+	Subject  string
+	Operator string
+	Value    string
+	NodeType string
+}

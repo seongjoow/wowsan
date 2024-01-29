@@ -7,39 +7,47 @@ import (
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	pb "wowsan/pkg/proto/broker"
+	grpcSubClient "wowsan/pkg/subscriber/transport"
 )
 
 type Broker struct {
-	RpcClient   grpcClient.BrokerClient
-	Id          string
-	Ip          string
-	Port        string
-	Brokers     map[string]*Broker
-	Publishers  map[string]*Publisher
-	Subscribers map[string]*Subscriber
-	SRT         []*SubscriptionRoutingTableItem
-	PRT         []*PublicationRoutingTableItem
+	RpcClient    grpcClient.BrokerClient
+	RpcSubClient grpcSubClient.SubscriberClient
+	Id           string
+	Ip           string
+	Port         string
+	Brokers      map[string]*Broker
+	Publishers   map[string]*Publisher
+	Subscribers  map[string]*Subscriber
+	SRT          []*SubscriptionRoutingTableItem
+	PRT          []*PublicationRoutingTableItem
 
 	// queue for advertisement
 	AdvertisementQueue chan *AdvertisementRequest
 	SubscriptionQueue  chan *SubscriptionRequest
+	PublicationQueue   chan *PublicationRequest
 }
 
 // public func
 func NewBroker(id, ip, port string) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
+	rpcSubscriberClient := grpcSubClient.NewSubscriberClient()
 
 	return &Broker{
-		RpcClient:   rpcClient,
-		Id:          id,
-		Ip:          ip,
-		Port:        port,
-		Publishers:  make(map[string]*Publisher),
-		Subscribers: make(map[string]*Subscriber),
-		Brokers:     make(map[string]*Broker),
+		RpcClient:    rpcClient,
+		RpcSubClient: rpcSubscriberClient,
+		Id:           id,
+		Ip:           ip,
+		Port:         port,
+		Publishers:   make(map[string]*Publisher),
+		Subscribers:  make(map[string]*Subscriber),
+		Brokers:      make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0), // 필요함?
 		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
 		SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
+		PublicationQueue:   make(chan *PublicationRequest, 100),
+		// AdvertisementQueue: make(chan *AdvertisementRequest),
+		// SubscriptionQueue:  make(chan *SubscriptionRequest),
 	}
 }
 
@@ -304,11 +312,30 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 	return nil
 }
 
-func (b *Broker) SendPublication(id string, ip string, port string, subject string, operator string, value string, nodeType string) error {
+// go routine 3
+func (b *Broker) DoPublicationQueue() {
+	for {
+		select {
+		case reqItem := <-b.PublicationQueue:
+			if reqItem == nil {
+				continue
+			}
+			b.SendPublication(
+				reqItem,
+			)
+		}
+	}
+}
+
+func (b *Broker) PushPublicationToQueue(req *PublicationRequest) {
+	b.PublicationQueue <- req
+}
+
+func (b *Broker) SendPublication(pubReq *PublicationRequest) error {
 	for _, item := range b.PRT {
 		// subscription의 subject와 publication의 subject가 같은 경우:
 		// 해당 subscription의 last hop으로 publication 전달함.
-		if item.Subscription.Subject == subject {
+		if item.Subscription.Subject == pubReq.Subject {
 			// 해당하는 subscription을 보낸 subscriber에게 도달할 때까지 hop-by-hop으로 전달
 			// (PRT의 last hop을 따라가면서 전달)
 
@@ -325,8 +352,17 @@ func (b *Broker) SendPublication(id string, ip string, port string, subject stri
 				fmt.Println("-----------------------")
 
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
+				// TODO: if 조건 구체화
 				if lastHop.NodeType == constants.SUBSCRIBER {
 					fmt.Printf("Publication Reached Subscriber %s\n", lastHop.Id)
+					// Notify subscriber
+					b.RpcSubClient.RPCReceivePublication(
+						lastHop.Ip,
+						lastHop.Port,
+						pubReq.Subject,
+						pubReq.Operator,
+						pubReq.Value,
+					)
 					break
 				}
 
@@ -337,9 +373,9 @@ func (b *Broker) SendPublication(id string, ip string, port string, subject stri
 					b.Id,
 					b.Ip,
 					b.Port,
-					subject,
-					operator,
-					value,
+					pubReq.Subject,
+					pubReq.Operator,
+					pubReq.Value,
 					constants.BROKER,
 				)
 				if err != nil {

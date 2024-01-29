@@ -40,6 +40,7 @@ func ExecutionLoop(ip, port string) {
 	go s.Serve(lis)
 	go localBrokerModel.DoAdvertisementQueue()
 	go localBrokerModel.DoSubscriptionQueue()
+	go localBrokerModel.DoPublicationQueue()
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 

@@ -1,5 +1,7 @@
 package model
 
+import "fmt"
+
 type Subscriber struct {
 	Id     string
 	Ip     string
@@ -27,6 +29,6 @@ func (s *Subscriber) SetBroker(id string, ip string, port string) *Broker {
 }
 
 func (s *Subscriber) ReceivePublication(id string, subject string, operator string, value string) error {
-	//
+	fmt.Println("NOTI: Received Publication!")
 	return nil
 }

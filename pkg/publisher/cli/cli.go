@@ -98,11 +98,11 @@ func ExecutionLoop(ip, port string) {
 			myPort := port
 
 			if publisherModel.Broker == nil {
-				fmt.Printf("This publisher is not registered to the broker.\n")
+				fmt.Printf("This publisher isn't registered to a broker.\n")
 			}
-
-			// if brokerIp != publisherModel.Broker.Ip || brokerPort != publisherModel.Broker.Port {
-			// }
+			if publisherModel.Broker.Ip != brokerIp || publisherModel.Broker.Port != brokerPort {
+				fmt.Printf("This publisher isn't registered to the broker.\n")
+			}
 
 			rpcClient.RPCSendPublication(
 				brokerIp,

@@ -4,12 +4,17 @@ import (
 	"bufio"
 	"fmt"
 	"log"
+	"net"
 	"os"
 	"strings"
 
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	model "wowsan/pkg/model"
+	pb "wowsan/pkg/proto/subscriber"
+	"wowsan/pkg/subscriber"
+
+	"google.golang.org/grpc"
 )
 
 func ExecutionLoop(ip, port string) {
@@ -17,8 +22,19 @@ func ExecutionLoop(ip, port string) {
 	log.Printf("Commands: add, sub")
 	id := ip + ":" + port
 
-	subscriberModel := model.NewSubscriber(id, ip, port)
+	// rpc server
+	lis, err := net.Listen("tcp", ip+":"+port)
+	if err != nil {
+		log.Fatalf("failed to listen: %v\n", err)
+	}
 
+	s := grpc.NewServer()
+	subscriberModel := model.NewSubscriber(id, ip, port)
+	server := subscriber.NewSubscriberRPCServer(subscriberModel)
+
+	pb.RegisterSubscriberServiceServer(s, server)
+
+	go s.Serve(lis)
 	// rpc client
 	rpcClient := grpcClient.NewBrokerClient()
 	scanner := bufio.NewScanner(os.Stdin)
