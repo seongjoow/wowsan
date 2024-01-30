@@ -66,7 +66,7 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	brokerRpcServer.brokerModel.PushAdvertisementToQueue(
+	go brokerRpcServer.brokerModel.PushAdvertisementToQueue(
 		&model.AdvertisementRequest{
 			Id:       request.Id,
 			Ip:       request.Ip,
@@ -104,7 +104,7 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	brokerRpcServer.brokerModel.PushSubscriptionToQueue(
+	go brokerRpcServer.brokerModel.PushSubscriptionToQueue(
 		&model.SubscriptionRequest{
 			Id:       request.Id,
 			Ip:       request.Ip,
@@ -140,7 +140,7 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	brokerRpcServer.brokerModel.PushPublicationToQueue(
+	go brokerRpcServer.brokerModel.PushPublicationToQueue(
 		&model.PublicationRequest{
 			Id:       request.Id,
 			Ip:       request.Ip,

@@ -30,6 +30,7 @@ func (sc *subscriberClient) RPCReceivePublication(ip, port, subject, operator, v
 	defer cancel()
 
 	response, err := c.ReceivePublication(ctx, &pb.ReceivePublicationRequest{
+		Id:       ip + ":" + port, // TODO
 		Subject:  subject,
 		Operator: operator,
 		Value:    value,
