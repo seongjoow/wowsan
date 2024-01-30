@@ -43,9 +43,9 @@ func NewBroker(id, ip, port string) *Broker {
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0), // 필요함?
-		AdvertisementQueue: make(chan *AdvertisementRequest),
-		SubscriptionQueue:  make(chan *SubscriptionRequest),
-		PublicationQueue:   make(chan *PublicationRequest),
+		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
+		SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
+		PublicationQueue:   make(chan *PublicationRequest, 100),
 	}
 }
 
