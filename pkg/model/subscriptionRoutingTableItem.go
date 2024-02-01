@@ -6,10 +6,17 @@ type Advertisement struct {
 	Value    string
 }
 
+type Identifier struct {
+	MessageId   string
+	PublisherId string
+	// TimeStamp
+}
+
 type SubscriptionRoutingTableItem struct {
 	Advertisement *Advertisement
 	LastHop       []*LastHop
 	HopCount      int64
+	Identifier    *Identifier
 }
 
 func NewSRTItem(
@@ -19,8 +26,10 @@ func NewSRTItem(
 	subject string,
 	operator string,
 	value string,
-	hopCount int64,
 	nodeType string,
+	hopCount int64,
+	messageId string,
+	publisherId string,
 ) *SubscriptionRoutingTableItem {
 	return &SubscriptionRoutingTableItem{
 		Advertisement: &Advertisement{
@@ -30,6 +39,10 @@ func NewSRTItem(
 		},
 		LastHop:  []*LastHop{NewLastHop(id, ip, port, nodeType)},
 		HopCount: hopCount,
+		Identifier: &Identifier{
+			MessageId:   messageId,
+			PublisherId: publisherId,
+		},
 	}
 }
 

@@ -61,21 +61,23 @@ func (brokerRpcServer *brokerRPCServer) AddSubscriber(ctx context.Context, reque
 }
 
 func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %d %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.HopCount, request.NodeType)
+	fmt.Printf("SendAdvertisement: %s %s %s %s %s %s %s %d %s %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.NodeType, request.HopCount, request.MessageId, request.SenderId)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
 	go brokerRpcServer.brokerModel.PushAdvertisementToQueue(
 		&model.AdvertisementRequest{
-			Id:       request.Id,
-			Ip:       request.Ip,
-			Port:     request.Port,
-			Subject:  request.Subject,
-			Operator: request.Operator,
-			Value:    request.Value,
-			HopCount: request.HopCount,
-			NodeType: request.NodeType,
+			Id:          request.Id,
+			Ip:          request.Ip,
+			Port:        request.Port,
+			Subject:     request.Subject,
+			Operator:    request.Operator,
+			Value:       request.Value,
+			NodeType:    request.NodeType,
+			HopCount:    request.HopCount,
+			MessageId:   request.MessageId,
+			PublisherId: request.SenderId,
 		},
 	)
 

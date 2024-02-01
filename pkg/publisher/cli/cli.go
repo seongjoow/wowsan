@@ -77,8 +77,10 @@ func ExecutionLoop(ip, port string) {
 				subject,
 				operator,
 				value,
-				hopCount,
 				constants.PUBLISHER,
+				hopCount,
+				"1", // TODO: messageId
+				myId,
 			)
 
 		case "pub":

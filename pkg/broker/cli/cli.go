@@ -18,7 +18,7 @@ import (
 func ExecutionLoop(ip, port string) {
 	defaultIP := "localhost"
 	log.Printf("Interactive shell")
-	log.Printf("Commands: add, show, sendAdv")
+	log.Printf("Commands: show, add, srt, prt, broker, publisher, subscriber")
 	id := ip + ":" + port
 
 	// rpc server
@@ -107,9 +107,9 @@ func ExecutionLoop(ip, port string) {
 			// fmt.Println("[SRT]")
 			fmt.Println("-----------[SRT]-----------")
 			for _, item := range localBrokerModel.SRT {
-				fmt.Printf("Adv: %s %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value)
+				fmt.Printf("Adv: %s %s %s | %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.PublisherId)
 				for i := 0; i < len(item.LastHop); i++ {
-					fmt.Printf("%s | %s | %d\n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
+					fmt.Printf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
 				}
 				fmt.Println("----------------------------")
 				// fmt.Printf("SRT: %s %s %d\n", item.LastHop[index].ID, item.LastHop[index].NodeType, item.HopCount)

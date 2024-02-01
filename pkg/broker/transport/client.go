@@ -20,7 +20,7 @@ type BrokerClient interface {
 	RPCAddPublisher(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
 	RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
 
-	RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error)
+	RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, publisherId string) (*pb.SendMessageResponse, error)
 	RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error) // hopCount int64
 	RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string) (*pb.SendMessageResponse, error)
 
@@ -94,7 +94,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value string, hopCount int64, nodeType string) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, publisherId string) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -104,14 +104,16 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subje
 	defer cancel()
 
 	response, err := c.SendAdvertisement(ctx, &pb.SendMessageRequest{
-		Id:       myId,
-		Ip:       myIp,
-		Port:     myPort,
-		Subject:  subject,
-		Operator: operator,
-		Value:    value,
-		HopCount: hopCount,
-		NodeType: nodeType,
+		Id:        myId,
+		Ip:        myIp,
+		Port:      myPort,
+		Subject:   subject,
+		Operator:  operator,
+		Value:     value,
+		NodeType:  nodeType,
+		HopCount:  hopCount,
+		MessageId: messageId,
+		SenderId:  publisherId,
 	})
 	if err != nil {
 		log.Fatalf("Response Error: %v", err)

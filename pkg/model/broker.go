@@ -22,7 +22,7 @@ type Broker struct {
 	SRT                 []*SubscriptionRoutingTableItem
 	PRT                 []*PublicationRoutingTableItem
 
-	// queue for advertisement
+	// Message queues
 	AdvertisementQueue chan *AdvertisementRequest
 	SubscriptionQueue  chan *SubscriptionRequest
 	PublicationQueue   chan *PublicationRequest
@@ -42,7 +42,7 @@ func NewBroker(id, ip, port string) *Broker {
 		Publishers:          make(map[string]*Publisher),
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
-		// SRT:         make([]*SubscriptionRoutingTableItem, 0), // 필요함?
+		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
 		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
 		SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
 		PublicationQueue:   make(chan *PublicationRequest, 100),
@@ -105,8 +105,10 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 		advReq.Subject,
 		advReq.Operator,
 		advReq.Value,
-		advReq.HopCount+1,
 		advReq.NodeType,
+		advReq.HopCount+1,
+		advReq.MessageId,
+		advReq.PublisherId,
 	)
 
 	isExist := false
@@ -154,14 +156,16 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
 	if isExist == false || isShorter == true {
 		newRequest := &pb.SendMessageRequest{
-			Id:       b.Id,
-			Ip:       b.Ip,
-			Port:     b.Port,
-			Subject:  advReq.Subject,
-			Operator: advReq.Operator,
-			Value:    advReq.Value,
-			HopCount: reqSrtItem.HopCount,
-			NodeType: advReq.NodeType,
+			Id:        b.Id,
+			Ip:        b.Ip,
+			Port:      b.Port,
+			Subject:   advReq.Subject,
+			Operator:  advReq.Operator,
+			Value:     advReq.Value,
+			NodeType:  advReq.NodeType,
+			HopCount:  reqSrtItem.HopCount,
+			MessageId: advReq.MessageId,
+			SenderId:  advReq.PublisherId,
 		}
 
 		// show broker list
@@ -190,8 +194,10 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 				newRequest.Subject,
 				newRequest.Operator,
 				newRequest.Value,
-				newRequest.HopCount,
 				constants.BROKER,
+				newRequest.HopCount,
+				newRequest.MessageId,
+				newRequest.SenderId,
 			)
 			if err != nil {
 				log.Fatalf("error: %v", err)
@@ -257,7 +263,7 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 					NodeType: subReq.NodeType,
 				}
 
-				// show neighboring brokers list
+				// Show neighboring brokers list
 				fmt.Println("==Neighboring Brokers==")
 				for _, lastHop := range item.LastHop {
 					fmt.Printf("%s\n", lastHop.Id)
@@ -270,7 +276,8 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 					fmt.Println("-----------------------")
 
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
-					if lastHop.NodeType == constants.PUBLISHER {
+					// if lastHop.NodeType == constants.PUBLISHER {
+					if lastHop.Id == item.Identifier.PublisherId {
 						fmt.Printf("Subscription Reached Publisher %s\n", lastHop.Id)
 						break
 					}

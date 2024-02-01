@@ -35,8 +35,10 @@ message SendMessageRequest {
     string subject = 4;
     string operator = 5;
     string value = 6; 
-    int64 hopCount = 7;
-    string nodeType = 8;
+    string nodeType = 7;
+    int64 hopCount = 8;
+    string messageId = 9;
+    string senderId = 10; // 메시지 발생시킨 노드의 id
     // string senderIp = 3;
 }
 
