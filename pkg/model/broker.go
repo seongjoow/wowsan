@@ -108,7 +108,7 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 		advReq.NodeType,
 		advReq.HopCount+1,
 		advReq.MessageId,
-		advReq.PublisherId,
+		advReq.SenderId,
 	)
 
 	isExist := false
@@ -165,7 +165,7 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 			NodeType:  advReq.NodeType,
 			HopCount:  reqSrtItem.HopCount,
 			MessageId: advReq.MessageId,
-			SenderId:  advReq.PublisherId,
+			SenderId:  advReq.SenderId,
 		}
 
 		// show broker list
@@ -234,6 +234,8 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 		subReq.Operator,
 		subReq.Value,
 		subReq.NodeType,
+		subReq.MessageId,
+		subReq.SenderId,
 	)
 
 	for _, item := range b.SRT {
@@ -254,13 +256,15 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
 				// (SRT의 last hop을 따라가면서 전달)
 				newRequest := &pb.SendMessageRequest{
-					Id:       b.Id,
-					Ip:       b.Ip,
-					Port:     b.Port,
-					Subject:  subReq.Subject,
-					Operator: subReq.Operator,
-					Value:    subReq.Value,
-					NodeType: subReq.NodeType,
+					Id:        b.Id,
+					Ip:        b.Ip,
+					Port:      b.Port,
+					Subject:   subReq.Subject,
+					Operator:  subReq.Operator,
+					Value:     subReq.Value,
+					NodeType:  subReq.NodeType,
+					MessageId: subReq.MessageId,
+					SenderId:  subReq.SenderId,
 				}
 
 				// Show neighboring brokers list
@@ -277,7 +281,7 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
-					if lastHop.Id == item.Identifier.PublisherId {
+					if lastHop.Id == item.Identifier.SenderId {
 						fmt.Printf("Subscription Reached Publisher %s\n", lastHop.Id)
 						break
 					}
@@ -298,6 +302,8 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 						newRequest.Operator,
 						newRequest.Value,
 						constants.BROKER,
+						newRequest.MessageId,
+						newRequest.SenderId,
 					)
 					if err != nil {
 						log.Fatalf("error: %v", err)
@@ -348,8 +354,8 @@ func (b *Broker) SendPublication(pubReq *PublicationRequest) error {
 				fmt.Println("-----------------------")
 
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
-				// TODO: if 조건 구체화
-				if lastHop.NodeType == constants.SUBSCRIBER {
+				// if lastHop.NodeType == constants.SUBSCRIBER {
+				if lastHop.Id == item.Identifier.SenderId {
 					fmt.Printf("Publication Reached Subscriber %s\n", lastHop.Id)
 
 					// Notify subscriber

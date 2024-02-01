@@ -7,8 +7,8 @@ type Advertisement struct {
 }
 
 type Identifier struct {
-	MessageId   string
-	PublisherId string
+	MessageId string
+	SenderId  string
 	// TimeStamp
 }
 
@@ -40,8 +40,8 @@ func NewSRTItem(
 		LastHop:  []*LastHop{NewLastHop(id, ip, port, nodeType)},
 		HopCount: hopCount,
 		Identifier: &Identifier{
-			MessageId:   messageId,
-			PublisherId: publisherId,
+			MessageId: messageId,
+			SenderId:  publisherId,
 		},
 	}
 }

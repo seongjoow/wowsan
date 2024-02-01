@@ -68,16 +68,16 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 
 	go brokerRpcServer.brokerModel.PushAdvertisementToQueue(
 		&model.AdvertisementRequest{
-			Id:          request.Id,
-			Ip:          request.Ip,
-			Port:        request.Port,
-			Subject:     request.Subject,
-			Operator:    request.Operator,
-			Value:       request.Value,
-			NodeType:    request.NodeType,
-			HopCount:    request.HopCount,
-			MessageId:   request.MessageId,
-			PublisherId: request.SenderId,
+			Id:        request.Id,
+			Ip:        request.Ip,
+			Port:      request.Port,
+			Subject:   request.Subject,
+			Operator:  request.Operator,
+			Value:     request.Value,
+			NodeType:  request.NodeType,
+			HopCount:  request.HopCount,
+			MessageId: request.MessageId,
+			SenderId:  request.SenderId,
 		},
 	)
 
@@ -101,20 +101,22 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 }
 
 func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, request *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.NodeType)
+	fmt.Printf("SendSubscription: %s %s %s %s %s %s %s %s %s\n", request.Id, request.Ip, request.Port, request.Subject, request.Operator, request.Value, request.NodeType, request.MessageId, request.SenderId)
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
 	go brokerRpcServer.brokerModel.PushSubscriptionToQueue(
 		&model.SubscriptionRequest{
-			Id:       request.Id,
-			Ip:       request.Ip,
-			Port:     request.Port,
-			Subject:  request.Subject,
-			Operator: request.Operator,
-			Value:    request.Value,
-			NodeType: request.NodeType,
+			Id:        request.Id,
+			Ip:        request.Ip,
+			Port:      request.Port,
+			Subject:   request.Subject,
+			Operator:  request.Operator,
+			Value:     request.Value,
+			NodeType:  request.NodeType,
+			MessageId: request.MessageId,
+			SenderId:  request.SenderId,
 		},
 	)
 

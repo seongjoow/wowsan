@@ -107,7 +107,7 @@ func ExecutionLoop(ip, port string) {
 			// fmt.Println("[SRT]")
 			fmt.Println("-----------[SRT]-----------")
 			for _, item := range localBrokerModel.SRT {
-				fmt.Printf("Adv: %s %s %s | %s %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.PublisherId)
+				fmt.Printf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
 				for i := 0; i < len(item.LastHop); i++ {
 					fmt.Printf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
 				}
@@ -119,7 +119,7 @@ func ExecutionLoop(ip, port string) {
 			// fmt.Println("[PRT]")
 			fmt.Println("-----------[PRT]-----------")
 			for _, item := range localBrokerModel.PRT {
-				fmt.Printf("Sub: %s %s %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value)
+				fmt.Printf("Sub: %s %s %s (%s) | %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value, item.Identifier.MessageId, item.Identifier.SenderId)
 				for i := 0; i < len(item.LastHop); i++ {
 					fmt.Printf("%s | %s\n", item.LastHop[i].Id, item.LastHop[i].NodeType)
 				}

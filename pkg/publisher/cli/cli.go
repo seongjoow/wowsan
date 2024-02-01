@@ -79,7 +79,7 @@ func ExecutionLoop(ip, port string) {
 				value,
 				constants.PUBLISHER,
 				hopCount,
-				"1", // TODO: messageId
+				"123", // TODO: messageId
 				myId,
 			)
 
@@ -120,7 +120,6 @@ func ExecutionLoop(ip, port string) {
 
 		case "broker":
 			fmt.Println(publisherModel.Broker.Id, publisherModel.Broker.Ip, publisherModel.Broker.Port)
-
 		}
 	}
 }

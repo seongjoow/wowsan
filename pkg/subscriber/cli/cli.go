@@ -97,11 +97,12 @@ func ExecutionLoop(ip, port string) {
 				operator,
 				value,
 				constants.SUBSCRIBER,
+				"234", // TODO: messageId
+				myId,
 			)
 
 		case "broker":
 			fmt.Println(subscriberModel.Broker.Id, subscriberModel.Broker.Ip, subscriberModel.Broker.Port)
-
 		}
 	}
 }

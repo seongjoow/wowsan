@@ -10,6 +10,7 @@ type PublicationRoutingTableItem struct {
 	Subscription *Subscription
 	LastHop      []*LastHop
 	// HopCount	int64
+	Identifier *Identifier
 }
 
 func NewPRTItem(
@@ -21,6 +22,8 @@ func NewPRTItem(
 	value string,
 	nodeType string,
 	// hopCount int64,
+	messageId string,
+	subscriberId string,
 ) *PublicationRoutingTableItem {
 	return &PublicationRoutingTableItem{
 		Subscription: &Subscription{
@@ -29,6 +32,10 @@ func NewPRTItem(
 			Value:    value,
 		},
 		LastHop: []*LastHop{NewLastHop(id, ip, port, nodeType)},
+		Identifier: &Identifier{
+			MessageId: messageId,
+			SenderId:  subscriberId,
+		},
 	}
 }
 
