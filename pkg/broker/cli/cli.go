@@ -9,6 +9,7 @@ import (
 	"strings"
 	"wowsan/pkg/broker"
 	grpcClient "wowsan/pkg/broker/transport"
+	logger "wowsan/pkg/logger"
 	model "wowsan/pkg/model"
 	pb "wowsan/pkg/proto/broker"
 
@@ -28,8 +29,9 @@ func ExecutionLoop(ip, port string) {
 	}
 
 	s := grpc.NewServer()
+	logger := logger.NewLogger(port)
 
-	localBrokerModel := model.NewBroker(id, ip, port)
+	localBrokerModel := model.NewBroker(id, ip, port, logger)
 	server := broker.NewBrokerRPCServer(localBrokerModel)
 
 	pb.RegisterBrokerServiceServer(s, server)

@@ -1,5 +1,7 @@
 package model
 
+import uuid "github.com/satori/go.uuid"
+
 type AdvertisementRequest struct {
 	Id        string
 	Ip        string
@@ -11,6 +13,7 @@ type AdvertisementRequest struct {
 	HopCount  int64
 	MessageId string
 	SenderId  string
+	HopId     uuid.UUID
 }
 
 type SubscriptionRequest struct {

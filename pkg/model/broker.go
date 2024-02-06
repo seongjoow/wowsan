@@ -11,6 +11,7 @@ import (
 )
 
 type Broker struct {
+	logger              *log.Logger
 	RpcClient           grpcClient.BrokerClient
 	RpcSubscriberClient grpcSubscriberClient.SubscriberClient
 	Id                  string
@@ -29,11 +30,11 @@ type Broker struct {
 }
 
 // public func
-func NewBroker(id, ip, port string) *Broker {
+func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
 	rpcSubscriberClient := grpcSubscriberClient.NewSubscriberClient()
-
 	return &Broker{
+		logger:              logger,
 		RpcClient:           rpcClient,
 		RpcSubscriberClient: rpcSubscriberClient,
 		Id:                  id,
