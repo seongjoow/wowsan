@@ -2,38 +2,53 @@ package model
 
 import uuid "github.com/satori/go.uuid"
 
-type AdvertisementRequest struct {
-	Id        string
-	Ip        string
-	Port      string
-	Subject   string
-	Operator  string
-	Value     string
-	NodeType  string
-	HopCount  int64
-	MessageId string
-	SenderId  string
-	HopId     uuid.UUID
+type MessageRequest struct {
+	Id          string
+	Ip          string
+	Port        string
+	Subject     string
+	Operator    string
+	Value       string
+	NodeType    string
+	HopCount    int64
+	MessageId   string
+	SenderId    string
+	MessageType string
+	HopId       uuid.UUID
 }
 
-type SubscriptionRequest struct {
-	Id        string
-	Ip        string
-	Port      string
-	Subject   string
-	Operator  string
-	Value     string
-	NodeType  string
-	MessageId string
-	SenderId  string
-}
+// type AdvertisementRequest struct {
+// 	Id        string
+// 	Ip        string
+// 	Port      string
+// 	Subject   string
+// 	Operator  string
+// 	Value     string
+// 	NodeType  string
+// 	HopCount  int64
+// 	MessageId string
+// 	SenderId  string
+// 	HopId     uuid.UUID
+// }
 
-type PublicationRequest struct {
-	Id       string
-	Ip       string
-	Port     string
-	Subject  string
-	Operator string
-	Value    string
-	NodeType string
-}
+// type SubscriptionRequest struct {
+// 	Id        string
+// 	Ip        string
+// 	Port      string
+// 	Subject   string
+// 	Operator  string
+// 	Value     string
+// 	NodeType  string
+// 	MessageId string
+// 	SenderId  string
+// }
+
+// type PublicationRequest struct {
+// 	Id       string
+// 	Ip       string
+// 	Port     string
+// 	Subject  string
+// 	Operator string
+// 	Value    string
+// 	NodeType string
+// }

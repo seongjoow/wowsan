@@ -14,6 +14,7 @@ import (
 	pb "wowsan/pkg/proto/subscriber"
 	"wowsan/pkg/subscriber"
 
+	uuid "github.com/satori/go.uuid"
 	"google.golang.org/grpc"
 )
 
@@ -97,7 +98,7 @@ func ExecutionLoop(ip, port string) {
 				operator,
 				value,
 				constants.SUBSCRIBER,
-				"234", // TODO: messageId
+				uuid.NewV4().String(), // TODO: messageId
 				myId,
 			)
 

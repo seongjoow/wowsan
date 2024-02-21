@@ -10,6 +10,8 @@ import (
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	model "wowsan/pkg/model"
+
+	uuid "github.com/satori/go.uuid"
 )
 
 func ExecutionLoop(ip, port string) {
@@ -79,7 +81,7 @@ func ExecutionLoop(ip, port string) {
 				value,
 				constants.PUBLISHER,
 				hopCount,
-				"123", // TODO: messageId
+				uuid.NewV4().String(), // TODO: messageId
 				myId,
 			)
 
@@ -116,6 +118,7 @@ func ExecutionLoop(ip, port string) {
 				operator,
 				value,
 				constants.PUBLISHER,
+				"",
 			)
 
 		case "broker":

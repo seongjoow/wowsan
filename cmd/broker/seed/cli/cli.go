@@ -45,7 +45,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 		case "add":
 			if len(args) != 3 {
 				fmt.Println("Invalid command.")
-				fmt.Println("useage: add [my port] [remote port]")
+				fmt.Println("usage: add [my port] [remote port]")
 				continue
 			}
 
@@ -70,7 +70,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 		case "broker":
 			if len(args) != 2 {
 				fmt.Println("Invalid command.")
-				fmt.Println("useage: broker [port]")
+				fmt.Println("usage: broker [port]")
 				continue
 			}
 			port := args[1]
@@ -85,7 +85,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 		case "publisher":
 			if len(args) != 2 {
 				fmt.Println("Invalid command.")
-				fmt.Println("useage: publisher [port]")
+				fmt.Println("usage: publisher [port]")
 				continue
 			}
 			port := args[1]
@@ -100,7 +100,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 		case "subscriber":
 			if len(args) != 2 {
 				fmt.Println("Invalid command.")
-				fmt.Println("useage: subscriber [port]")
+				fmt.Println("usage: subscriber [port]")
 				continue
 			}
 			port := args[1]
@@ -115,8 +115,8 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 		case "srt":
 			if len(args) != 2 {
 				fmt.Println("Invalid command.")
-				// useage
-				fmt.Println("useage: srt [port]")
+				// usage
+				fmt.Println("usage: srt [port]")
 				continue
 			}
 			port := args[1]

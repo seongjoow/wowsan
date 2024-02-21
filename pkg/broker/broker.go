@@ -4,6 +4,7 @@ package broker
 import (
 	// "fmt"
 	"fmt"
+	"wowsan/constants"
 	model "wowsan/pkg/model"
 
 	"context"
@@ -66,18 +67,19 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushAdvertisementToQueue(
-		&model.AdvertisementRequest{
-			Id:        request.Id,
-			Ip:        request.Ip,
-			Port:      request.Port,
-			Subject:   request.Subject,
-			Operator:  request.Operator,
-			Value:     request.Value,
-			NodeType:  request.NodeType,
-			HopCount:  request.HopCount,
-			MessageId: request.MessageId,
-			SenderId:  request.SenderId,
+	go brokerRpcServer.brokerModel.PushMessageToQueue(
+		&model.MessageRequest{
+			Id:          request.Id,
+			Ip:          request.Ip,
+			Port:        request.Port,
+			Subject:     request.Subject,
+			Operator:    request.Operator,
+			Value:       request.Value,
+			NodeType:    request.NodeType,
+			HopCount:    request.HopCount,
+			MessageId:   request.MessageId,
+			SenderId:    request.SenderId,
+			MessageType: constants.ADVERTISEMENT,
 		},
 	)
 
@@ -106,17 +108,18 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushSubscriptionToQueue(
-		&model.SubscriptionRequest{
-			Id:        request.Id,
-			Ip:        request.Ip,
-			Port:      request.Port,
-			Subject:   request.Subject,
-			Operator:  request.Operator,
-			Value:     request.Value,
-			NodeType:  request.NodeType,
-			MessageId: request.MessageId,
-			SenderId:  request.SenderId,
+	go brokerRpcServer.brokerModel.PushMessageToQueue(
+		&model.MessageRequest{
+			Id:          request.Id,
+			Ip:          request.Ip,
+			Port:        request.Port,
+			Subject:     request.Subject,
+			Operator:    request.Operator,
+			Value:       request.Value,
+			NodeType:    request.NodeType,
+			MessageId:   request.MessageId,
+			SenderId:    request.SenderId,
+			MessageType: constants.SUBSCRIPTION,
 		},
 	)
 
@@ -144,15 +147,16 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushPublicationToQueue(
-		&model.PublicationRequest{
-			Id:       request.Id,
-			Ip:       request.Ip,
-			Port:     request.Port,
-			Subject:  request.Subject,
-			Operator: request.Operator,
-			Value:    request.Value,
-			NodeType: request.NodeType,
+	go brokerRpcServer.brokerModel.PushMessageToQueue(
+		&model.MessageRequest{
+			Id:          request.Id,
+			Ip:          request.Ip,
+			Port:        request.Port,
+			Subject:     request.Subject,
+			Operator:    request.Operator,
+			Value:       request.Value,
+			NodeType:    request.NodeType,
+			MessageType: constants.PUBLICATION,
 		},
 	)
 
@@ -173,38 +177,3 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 
 	return &pb.SendMessageResponse{Message: "success"}, nil
 }
-
-// func (s *broker) SendMessage(ctx context.Context, in *pb.SendMessageRequest) (*pb.SendMessageResponse, error) {
-
-// 	return &pb.SendMessageResponse{
-// 		Message: in.Message,
-// 		}, nil
-// }
-
-// // interface
-// type Broker interface {
-// 	RegisterPublisher(publisher *model.Publisher)
-// 	RegisterSubscriber(subscriber *model.Subscriber)
-// 	ProcessMessages()
-// }
-
-// // ProcessMessages 함수는 발행자로부터 메시지를 수신하고 구독자에게 전달하는 로직을 포함합니다.
-// func (b *broker) ProcessMessages() {
-
-// 	for {
-// 		msg, err := b.Node.ReceiveMessage()
-// 		if err != nil {
-// 			fmt.Println("Error receiving message:", err)
-// 			continue
-// 		}
-
-// 		for _, sub := range b.Subscribers {
-// 			err := sub.Node.SendMessage(msg)
-// 			if err != nil {
-// 				fmt.Printf("Error sending message to subscriber %s: %v\n", sub.ID, err)
-// 			}
-// 		}
-// 	}
-// }
-
-// // 여기에 추가적인 브로커 관련 로직을 구현...

@@ -24,9 +24,10 @@ type Broker struct {
 	PRT                 []*PublicationRoutingTableItem
 
 	// Message queues
-	AdvertisementQueue chan *AdvertisementRequest
-	SubscriptionQueue  chan *SubscriptionRequest
-	PublicationQueue   chan *PublicationRequest
+	MessageQueue chan *MessageRequest
+	// AdvertisementQueue chan *AdvertisementRequest
+	// SubscriptionQueue  chan *SubscriptionRequest
+	// PublicationQueue   chan *PublicationRequest
 }
 
 // public func
@@ -44,9 +45,10 @@ func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
-		AdvertisementQueue: make(chan *AdvertisementRequest, 100),
-		SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
-		PublicationQueue:   make(chan *PublicationRequest, 100),
+		MessageQueue: make(chan *MessageRequest, 1000),
+		// AdvertisementQueue: make(chan *AdvertisementRequest, 100),
+		// SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
+		// PublicationQueue:   make(chan *PublicationRequest, 100),
 	}
 }
 
@@ -80,23 +82,42 @@ func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
 	return subscriber
 }
 
-// go routine 1
-func (b *Broker) DoAdvertisementQueue() {
+func (b *Broker) DoMessageQueue() {
 	for {
-		select {
-		case reqSrtItem := <-b.AdvertisementQueue:
-			b.SendAdvertisement(
-				reqSrtItem,
-			)
+		switch message := <-b.MessageQueue; message.MessageType {
+		case constants.ADVERTISEMENT:
+			b.SendAdvertisement(message)
+
+		case constants.SUBSCRIPTION:
+			b.SendSubscription(message)
+
+		case constants.PUBLICATION:
+			b.SendPublication(message)
 		}
 	}
 }
 
-func (b *Broker) PushAdvertisementToQueue(req *AdvertisementRequest) {
-	b.AdvertisementQueue <- req
+func (b *Broker) PushMessageToQueue(msgReq *MessageRequest) {
+	b.MessageQueue <- msgReq
 }
 
-func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
+// go routine 1
+// func (b *Broker) DoAdvertisementQueue() {
+// 	for {
+// 		select {
+// 		case reqSrtItem := <-b.AdvertisementQueue:
+// 			b.SendAdvertisement(
+// 				reqSrtItem,
+// 			)
+// 		}
+// 	}
+// }
+
+// func (b *Broker) PushAdvertisementToQueue(req *AdvertisementRequest) {
+// 	b.AdvertisementQueue <- req
+// }
+
+func (b *Broker) SendAdvertisement(advReq *MessageRequest) error {
 	// srt := b.SRT
 
 	reqSrtItem := NewSRTItem(
@@ -211,22 +232,22 @@ func (b *Broker) SendAdvertisement(advReq *AdvertisementRequest) error {
 }
 
 // go routine 2
-func (b *Broker) DoSubscriptionQueue() {
-	for {
-		select {
-		case reqPrtItem := <-b.SubscriptionQueue:
-			b.SendSubscription(
-				reqPrtItem,
-			)
-		}
-	}
-}
+// func (b *Broker) DoSubscriptionQueue() {
+// 	for {
+// 		select {
+// 		case reqPrtItem := <-b.SubscriptionQueue:
+// 			b.SendSubscription(
+// 				reqPrtItem,
+// 			)
+// 		}
+// 	}
+// }
 
-func (b *Broker) PushSubscriptionToQueue(req *SubscriptionRequest) {
-	b.SubscriptionQueue <- req
-}
+// func (b *Broker) PushSubscriptionToQueue(req *SubscriptionRequest) {
+// 	b.SubscriptionQueue <- req
+// }
 
-func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
+func (b *Broker) SendSubscription(subReq *MessageRequest) error {
 	reqPrtItem := NewPRTItem(
 		subReq.Id,
 		subReq.Ip,
@@ -283,7 +304,7 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
 					if lastHop.Id == item.Identifier.SenderId {
-						fmt.Printf("Subscription Reached Publisher %s\n", lastHop.Id)
+						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
 						break
 					}
 					// 	for _, publisher := range b.Publishers {
@@ -319,30 +340,35 @@ func (b *Broker) SendSubscription(subReq *SubscriptionRequest) error {
 }
 
 // go routine 3
-func (b *Broker) DoPublicationQueue() {
-	for {
-		select {
-		case reqItem := <-b.PublicationQueue:
-			b.SendPublication(
-				reqItem,
-			)
-		}
-	}
-}
+// func (b *Broker) DoPublicationQueue() {
+// 	for {
+// 		select {
+// 		case reqItem := <-b.PublicationQueue:
+// 			b.SendPublication(
+// 				reqItem,
+// 			)
+// 		}
+// 	}
+// }
 
-func (b *Broker) PushPublicationToQueue(req *PublicationRequest) {
-	b.PublicationQueue <- req
-}
+// func (b *Broker) PushPublicationToQueue(req *PublicationRequest) {
+// 	b.PublicationQueue <- req
+// }
 
-func (b *Broker) SendPublication(pubReq *PublicationRequest) error {
+func (b *Broker) SendPublication(pubReq *MessageRequest) error {
 	for _, item := range b.PRT {
 		// subscription의 subject와 publication의 subject가 같은 경우:
 		// 해당 subscription의 last hop으로 publication 전달함.
+
+		if pubReq.MessageId == "" {
+			pubReq.MessageId = item.Identifier.MessageId
+		}
+
 		if item.Subscription.Subject == pubReq.Subject {
 			// 해당하는 subscription을 보낸 subscriber에게 도달할 때까지 hop-by-hop으로 전달
 			// (PRT의 last hop을 따라가면서 전달)
 
-			// Show broker list
+			// Show last hops
 			fmt.Println("===Matching Last Hop===")
 			for _, lastHop := range item.LastHop {
 				fmt.Printf("%s\n", lastHop.Id)
@@ -357,7 +383,7 @@ func (b *Broker) SendPublication(pubReq *PublicationRequest) error {
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
 				// if lastHop.NodeType == constants.SUBSCRIBER {
 				if lastHop.Id == item.Identifier.SenderId {
-					fmt.Printf("Publication Reached Subscriber %s\n", lastHop.Id)
+					fmt.Printf("Publication reached subscriber %s\n", lastHop.Id)
 
 					// Notify subscriber
 					b.RpcSubscriberClient.RPCReceivePublication(
@@ -370,22 +396,31 @@ func (b *Broker) SendPublication(pubReq *PublicationRequest) error {
 					break
 				}
 
-				// 새로운 요청을 SRT의 last hop 브로커에게 전송
-				_, err := b.RpcClient.RPCSendPublication(
-					lastHop.Ip,   //remote broker ip
-					lastHop.Port, //remote broker port
-					b.Id,
-					b.Ip,
-					b.Port,
-					pubReq.Subject,
-					pubReq.Operator,
-					pubReq.Value,
-					constants.BROKER,
-				)
-				if err != nil {
-					log.Fatalf("error: %v", err)
-					continue
+				if pubReq.MessageId == "" {
+					pubReq.MessageId = item.Identifier.MessageId
 				}
+
+				if pubReq.MessageId == item.Identifier.MessageId {
+					// 새로운 요청을 SRT의 last hop 브로커에게 전송
+					_, err := b.RpcClient.RPCSendPublication(
+						lastHop.Ip,   //remote broker ip
+						lastHop.Port, //remote broker port
+						b.Id,
+						b.Ip,
+						b.Port,
+						pubReq.Subject,
+						pubReq.Operator,
+						pubReq.Value,
+						constants.BROKER,
+						pubReq.MessageId,
+					)
+
+					if err != nil {
+						log.Fatalf("error: %v", err)
+						continue
+					}
+				}
+
 			}
 		}
 	}

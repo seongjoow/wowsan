@@ -38,9 +38,10 @@ func initSeed(port string) *model.Broker {
 
 	pb.RegisterBrokerServiceServer(s, server)
 	go s.Serve(lis)
-	go localBrokerModel.DoAdvertisementQueue()
-	go localBrokerModel.DoSubscriptionQueue()
-	go localBrokerModel.DoPublicationQueue()
+	go localBrokerModel.DoMessageQueue()
+	// go localBrokerModel.DoAdvertisementQueue()
+	// go localBrokerModel.DoSubscriptionQueue()
+	// go localBrokerModel.DoPublicationQueue()
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 

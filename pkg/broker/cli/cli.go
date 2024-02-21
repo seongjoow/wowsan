@@ -40,9 +40,10 @@ func ExecutionLoop(ip, port string) {
 	// 	log.Fatalf("failed to serve: %v\n", err)
 	// }
 	go s.Serve(lis)
-	go localBrokerModel.DoAdvertisementQueue()
-	go localBrokerModel.DoSubscriptionQueue()
-	go localBrokerModel.DoPublicationQueue()
+	go localBrokerModel.DoMessageQueue()
+	// go localBrokerModel.DoAdvertisementQueue()
+	// go localBrokerModel.DoSubscriptionQueue()
+	// go localBrokerModel.DoPublicationQueue()
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 
