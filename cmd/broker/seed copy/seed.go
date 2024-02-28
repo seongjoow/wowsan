@@ -60,8 +60,9 @@ func main() {
 	seedBrokers := brokerPortsGenerator(nodeCount)
 	totalNeighbors := 0
 	MAX_NEIGHBOR := 5
-	AVG_NEIGHBOR := 2
+	AVG_NEIGHBOR := 3
 	MIN_NEIGHBOR := 1
+	var brokerToAdd *model.Broker
 
 	for index, port := range seedBrokers {
 		broker := initSeed(port)
@@ -81,40 +82,36 @@ func main() {
 					// fmt.Printf("broker %v has enough neighbor\n", broker.Id)
 					break
 				} else if len(broker.Brokers) < MIN_NEIGHBOR {
-					var addTo *model.Broker
+
 					// Randomly add a broker to another broker
-					randIndex := 0
-					addTo = Brokers[randIndex]
-
-					for i := 0; i < len(Brokers); i++ {
-						if len(addTo.Brokers) < MAX_NEIGHBOR {
-							randIndex = rand.Intn(len(Brokers))
-							addTo = Brokers[randIndex]
-
-							// 자기 자신에게는 추가하지 않음
-							if addTo.Port == broker.Port {
-								continue
-							}
-							break
+					for len(broker.Brokers) < MIN_NEIGHBOR {
+						randIndex := rand.Intn(nodeCount)
+						brokerToAdd = Brokers[randIndex]
+						if len(brokerToAdd.Brokers) >= MAX_NEIGHBOR {
+							continue
 						}
+						// 자기 자신에게는 추가하지 않음
+						if brokerToAdd.Ip == broker.Ip && brokerToAdd.Port == broker.Port {
+							continue
+						}
+						rpcBrokerClient.RPCAddBroker(
+							brokerToAdd.Ip,
+							brokerToAdd.Port,
+							broker.Id,
+							broker.Ip,
+							broker.Port,
+						)
+						broker.AddBroker(brokerToAdd.Id, brokerToAdd.Ip, brokerToAdd.Port)
+						totalNeighbors += 2
 					}
-					rpcBrokerClient.RPCAddBroker(
-						addTo.Ip,
-						addTo.Port,
-						broker.Id,
-						broker.Ip,
-						broker.Port,
-					)
-					broker.AddBroker(addTo.Id, addTo.Ip, addTo.Port)
-					totalNeighbors += 2
 				}
 			}
 
 			// 평균 이웃 수에 맞춰 이웃 추가 및 삭제
 			// if totalNeighbors < AVG_NEIGHBOR*len(Brokers) {
 			for {
-				currentAvg := totalNeighbors / len(Brokers)
-				fmt.Printf("totalNeighbors / brokers : %v/ %v\n", totalNeighbors, len(Brokers))
+				currentAvg := totalNeighbors / nodeCount
+				fmt.Printf("totalNeighbors / brokers : %v/ %v\n", totalNeighbors, nodeCount)
 				fmt.Printf("currentAvg: %v\n", currentAvg)
 				if currentAvg == AVG_NEIGHBOR {
 					fmt.Println("currentAvg == AVG_NEIGHBOR (1)")
@@ -122,12 +119,13 @@ func main() {
 				}
 				if currentAvg < AVG_NEIGHBOR {
 					for i := 0; i < len(Brokers); i++ {
-						neighborindex := rand.Intn(nodeCount)
+						randIndex := rand.Intn(nodeCount)
+						brokerToAdd = Brokers[randIndex]
 
-						if neighborindex != i && !contains(Brokers[i].Brokers, Brokers[neighborindex]) {
+						if randIndex != i && !contains(Brokers[i].Brokers, brokerToAdd) {
 							_, err := rpcBrokerClient.RPCAddBroker(
-								Brokers[neighborindex].Ip,
-								Brokers[neighborindex].Port,
+								brokerToAdd.Ip,
+								brokerToAdd.Port,
 								Brokers[i].Id,
 								Brokers[i].Ip,
 								Brokers[i].Port,
@@ -135,11 +133,10 @@ func main() {
 							if err != nil {
 								fmt.Printf("error: %v", err)
 							}
-							Brokers[i].AddBroker(Brokers[neighborindex].Id, Brokers[neighborindex].Ip, Brokers[neighborindex].Port)
-
+							Brokers[i].AddBroker(brokerToAdd.Id, brokerToAdd.Ip, brokerToAdd.Port)
 							totalNeighbors += 2
 
-							currentAvg = totalNeighbors / len(Brokers)
+							currentAvg = totalNeighbors / nodeCount
 							if currentAvg == AVG_NEIGHBOR {
 								fmt.Println("currentAvg == AVG_NEIGHBOR (2)")
 								break
@@ -150,13 +147,12 @@ func main() {
 			}
 
 			for _, broker := range Brokers {
-				// show neighbor
+				// Show neighbor
 				fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
 				for _, neighbor := range broker.Brokers {
 					fmt.Printf("neighbor: %v\n", neighbor.Port)
 				}
 			}
-			// close the goroutine
 			return
 		}
 	}()
