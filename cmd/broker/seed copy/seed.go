@@ -52,7 +52,6 @@ func initSeed(port string) *model.Broker {
 
 func main() {
 	var isReady bool
-	// var isReady = make([]bool, len(seedBrokers))
 	var Brokers = []*model.Broker{}
 	rpcBrokerClient := grpcClient.NewBrokerClient()
 
@@ -66,7 +65,6 @@ func main() {
 
 	for index, port := range seedBrokers {
 		broker := initSeed(port)
-		// isReady[index] = true
 		if index == len(seedBrokers)-1 {
 			isReady = true
 			fmt.Printf("All brokers are ready: %v\n", isReady)
@@ -77,9 +75,7 @@ func main() {
 	go func() {
 		if isReady {
 			for _, broker := range Brokers {
-				// fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
 				if len(broker.Brokers) > MAX_NEIGHBOR {
-					// fmt.Printf("broker %v has enough neighbor\n", broker.Id)
 					break
 				} else if len(broker.Brokers) < MIN_NEIGHBOR {
 
@@ -108,7 +104,6 @@ func main() {
 			}
 
 			// 평균 이웃 수에 맞춰 이웃 추가 및 삭제
-			// if totalNeighbors < AVG_NEIGHBOR*len(Brokers) {
 			for {
 				currentAvg := totalNeighbors / nodeCount
 				fmt.Printf("totalNeighbors / brokers : %v/ %v\n", totalNeighbors, nodeCount)
