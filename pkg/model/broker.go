@@ -24,9 +24,12 @@ type Broker struct {
 	SRT                 []*SubscriptionRoutingTableItem
 	PRT                 []*PublicationRoutingTableItem
 
-	// Message queues
-	MessageQueue     chan *MessageRequest
-	QueueWaitingTime time.Duration
+	// Message queue
+	MessageQueue chan *MessageRequest
+
+	// 성능 지표 (평균 큐 대기 시간, 평균 서비스 시간)
+	QueueTime   time.Duration
+	ServiceTime time.Duration
 }
 
 // public func
@@ -44,11 +47,9 @@ func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
-		MessageQueue:     make(chan *MessageRequest, 1000),
-		QueueWaitingTime: 0,
-		// AdvertisementQueue: make(chan *AdvertisementRequest, 100),
-		// SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
-		// PublicationQueue:   make(chan *PublicationRequest, 100),
+		MessageQueue: make(chan *MessageRequest, 1000),
+		QueueTime:    0,
+		ServiceTime:  0,
 	}
 }
 
@@ -84,31 +85,68 @@ func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
 
 func (b *Broker) DoMessageQueue() {
 	var totalQueueTime time.Duration
+	var totalServiceTime time.Duration
 	var messageCount int64
 
 	for {
 		message := <-b.MessageQueue
+
+		// 큐 대기 시간 측정 종료
 		queueTime := time.Since(message.EnqueueTime)
 		totalQueueTime += queueTime
 		messageCount++
 		avgQueueTime := totalQueueTime / time.Duration(messageCount)
-		b.QueueWaitingTime = avgQueueTime
-
-		log.Printf("Cumulative Average Message Queue Waiting Time: %v\n", avgQueueTime)
+		b.QueueTime = avgQueueTime
+		log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 
 		switch message.MessageType {
 		case constants.ADVERTISEMENT:
+			// 서비스 시간 측정 시작
+			message.EnserviceTime = time.Now()
+
+			time.Sleep(2 * time.Second)
 			b.SendAdvertisement(message)
+
+			// 서비스 시간 측정 종료
+			serviceTime := time.Since(message.EnserviceTime)
+			totalServiceTime += serviceTime
+			avgServiceTime := totalServiceTime / time.Duration(messageCount)
+			b.ServiceTime = avgServiceTime
+			log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.SUBSCRIPTION:
+			// 서비스 시간 측정 시작
+			message.EnserviceTime = time.Now()
+
+			time.Sleep(2 * time.Second)
 			b.SendSubscription(message)
+
+			// 서비스 시간 측정 종료
+			serviceTime := time.Since(message.EnserviceTime)
+			totalServiceTime += serviceTime
+			avgServiceTime := totalServiceTime / time.Duration(messageCount)
+			b.ServiceTime = avgServiceTime
+			log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.PUBLICATION:
+			// 서비스 시간 측정 시작
+			message.EnserviceTime = time.Now()
+
+			time.Sleep(2 * time.Second)
 			b.SendPublication(message)
+
+			// 서비스 시간 측정 종료
+			serviceTime := time.Since(message.EnserviceTime)
+			totalServiceTime += serviceTime
+			avgServiceTime := totalServiceTime / time.Duration(messageCount)
+			b.ServiceTime = avgServiceTime
+			log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
 		}
 	}
 }
 
 func (b *Broker) PushMessageToQueue(msgReq *MessageRequest) {
+	// 큐 대기 시간 측정 시작
 	msgReq.EnqueueTime = time.Now()
+
 	b.MessageQueue <- msgReq
 }
 

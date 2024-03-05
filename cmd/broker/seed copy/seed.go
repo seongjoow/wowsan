@@ -35,9 +35,10 @@ func performanceLogger(
 	for {
 		<-ticker.C
 		queueLength := len(broker.MessageQueue)
-		queueWaitingTime := broker.QueueWaitingTime
+		queueTime := broker.QueueTime
+		serviceTime := broker.ServiceTime
 
-		logger.Printf("Queue length: %v, Queue waiting time: %v\n", queueLength, queueWaitingTime)
+		logger.Printf("Queue length: %v, Queue time: %v, Service time: %v\n", queueLength, queueTime, serviceTime)
 	}
 }
 
@@ -57,9 +58,6 @@ func initSeed(port string) *model.Broker {
 	go s.Serve(lis)
 	go localBrokerModel.DoMessageQueue()
 	go performanceLogger(localBrokerModel, l)
-	// go localBrokerModel.DoAdvertisementQueue()
-	// go localBrokerModel.DoSubscriptionQueue()
-	// go localBrokerModel.DoPublicationQueue()
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 
@@ -119,7 +117,7 @@ func main() {
 				}
 			}
 
-			// 평균 이웃 수에 맞춰 이웃 추가 및 삭제
+			// 평균 이웃 수에 맞춰 이웃 추가
 			for {
 				currentAvg := totalNeighbors / nodeCount
 				fmt.Printf("totalNeighbors / brokers : %v/ %v\n", totalNeighbors, nodeCount)

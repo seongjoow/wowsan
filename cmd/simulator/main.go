@@ -54,6 +54,7 @@ func RunPublisherSimulation(durationSeconds int, lambda float64, brokerIp string
 		interval := getExpInterval(lambda)
 		time.Sleep(interval)
 
+		// 메세지 전달 함수 호출
 		rpcClient.RPCSendAdvertisement(
 			publisherModel.Broker.Ip,
 			publisherModel.Broker.Port,
@@ -68,7 +69,6 @@ func RunPublisherSimulation(durationSeconds int, lambda float64, brokerIp string
 			uuid.NewV4().String(),
 			publisherId,
 		)
-		// 메세지 전달 함수 호출
 
 	}
 }
