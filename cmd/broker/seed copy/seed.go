@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"net"
+	"time"
 	"wowsan/pkg/broker"
 	model "wowsan/pkg/model"
 	pb "wowsan/pkg/proto/broker"
@@ -26,6 +27,20 @@ func brokerPortsGenerator(counts int) (ports []string) {
 	return
 }
 
+func performanceLogger(
+	broker *model.Broker,
+	logger *log.Logger) {
+	ticker := time.NewTicker(1 * time.Second)
+	defer ticker.Stop()
+	for {
+		<-ticker.C
+		queueLength := len(broker.MessageQueue)
+		queueWaitingTime := broker.QueueWaitingTime
+
+		logger.Printf("Queue length: %v, Queue waiting time: %v\n", queueLength, queueWaitingTime)
+	}
+}
+
 func initSeed(port string) *model.Broker {
 	lis, err := net.Listen("tcp", "localhost"+":"+port)
 	if err != nil {
@@ -41,6 +56,7 @@ func initSeed(port string) *model.Broker {
 	pb.RegisterBrokerServiceServer(s, server)
 	go s.Serve(lis)
 	go localBrokerModel.DoMessageQueue()
+	go performanceLogger(localBrokerModel, l)
 	// go localBrokerModel.DoAdvertisementQueue()
 	// go localBrokerModel.DoSubscriptionQueue()
 	// go localBrokerModel.DoPublicationQueue()

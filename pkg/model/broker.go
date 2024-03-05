@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"time"
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	pb "wowsan/pkg/proto/broker"
@@ -24,10 +25,8 @@ type Broker struct {
 	PRT                 []*PublicationRoutingTableItem
 
 	// Message queues
-	MessageQueue chan *MessageRequest
-	// AdvertisementQueue chan *AdvertisementRequest
-	// SubscriptionQueue  chan *SubscriptionRequest
-	// PublicationQueue   chan *PublicationRequest
+	MessageQueue     chan *MessageRequest
+	QueueWaitingTime time.Duration
 }
 
 // public func
@@ -45,7 +44,8 @@ func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
-		MessageQueue: make(chan *MessageRequest, 1000),
+		MessageQueue:     make(chan *MessageRequest, 1000),
+		QueueWaitingTime: 0,
 		// AdvertisementQueue: make(chan *AdvertisementRequest, 100),
 		// SubscriptionQueue:  make(chan *SubscriptionRequest, 100),
 		// PublicationQueue:   make(chan *PublicationRequest, 100),
@@ -83,14 +83,24 @@ func (b *Broker) AddSubscriber(id string, ip string, port string) *Subscriber {
 }
 
 func (b *Broker) DoMessageQueue() {
+	var totalQueueTime time.Duration
+	var messageCount int64
+
 	for {
-		switch message := <-b.MessageQueue; message.MessageType {
+		message := <-b.MessageQueue
+		queueTime := time.Since(message.EnqueueTime)
+		totalQueueTime += queueTime
+		messageCount++
+		avgQueueTime := totalQueueTime / time.Duration(messageCount)
+		b.QueueWaitingTime = avgQueueTime
+
+		log.Printf("Cumulative Average Message Queue Waiting Time: %v\n", avgQueueTime)
+
+		switch message.MessageType {
 		case constants.ADVERTISEMENT:
 			b.SendAdvertisement(message)
-
 		case constants.SUBSCRIPTION:
 			b.SendSubscription(message)
-
 		case constants.PUBLICATION:
 			b.SendPublication(message)
 		}
@@ -98,6 +108,7 @@ func (b *Broker) DoMessageQueue() {
 }
 
 func (b *Broker) PushMessageToQueue(msgReq *MessageRequest) {
+	msgReq.EnqueueTime = time.Now()
 	b.MessageQueue <- msgReq
 }
 

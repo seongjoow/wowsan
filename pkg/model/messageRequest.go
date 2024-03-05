@@ -1,6 +1,10 @@
 package model
 
-import uuid "github.com/satori/go.uuid"
+import (
+	"time"
+
+	uuid "github.com/satori/go.uuid"
+)
 
 type MessageRequest struct {
 	Id          string
@@ -15,6 +19,7 @@ type MessageRequest struct {
 	SenderId    string
 	MessageType string
 	HopId       uuid.UUID
+	EnqueueTime time.Time
 }
 
 // type AdvertisementRequest struct {
