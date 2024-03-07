@@ -131,11 +131,12 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	lambda := 0.333
-	duration := 10
+	lambda1 := 0.1 // 단위 시간당 평균 호출 횟수 λ (예: λ = 0.333 이면 3초에 한 번 호출)
+	lambda2 := 0.333
+	duration := 10 // 시뮬레이션 할 총 시간(초)
 
-	go RunPublisherSimulation(duration, lambda, "localhost", "50051", "id1", "localhost", "1111")
-	go RunSubscriberSimulation(duration, lambda, "localhost", "50054", "id2", "localhost", "2222")
+	go RunPublisherSimulation(duration, lambda1, "localhost", "50051", "id1", "localhost", "1111")
+	go RunSubscriberSimulation(duration, lambda2, "localhost", "50054", "id2", "localhost", "2222")
 
 	// block thread
 	select {}

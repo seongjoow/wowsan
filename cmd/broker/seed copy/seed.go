@@ -37,8 +37,16 @@ func performanceLogger(
 		queueLength := len(broker.MessageQueue)
 		queueTime := broker.QueueTime
 		serviceTime := broker.ServiceTime
+		var throughput float64
+		if queueTime+serviceTime == 0 {
+			throughput = 0
+		} else {
+			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+		}
 
-		logger.Printf("Queue length: %v, Queue time: %v, Service time: %v\n", queueLength, queueTime, serviceTime)
+		interArrivalTime := broker.InterArrivalTime
+
+		logger.Printf("Queue length: %v, Queue time: %v, Service time: %v, Throughput: %v, Inter-Arrival Time: %v\n", queueLength, queueTime, serviceTime, throughput, interArrivalTime)
 	}
 }
 

@@ -27,9 +27,11 @@ type Broker struct {
 	// Message queue
 	MessageQueue chan *MessageRequest
 
-	// 성능 지표 (평균 큐 대기 시간, 평균 서비스 시간)
-	QueueTime   time.Duration
-	ServiceTime time.Duration
+	// 성능 지표 (평균 큐 대기 시간, 평균 서비스 시간, 평균 메시지 도착 간격)
+	QueueTime        time.Duration
+	ServiceTime      time.Duration
+	LastArrivalTime  time.Time
+	InterArrivalTime time.Duration
 }
 
 // public func
@@ -47,9 +49,10 @@ func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
 		Subscribers:         make(map[string]*Subscriber),
 		Brokers:             make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
-		MessageQueue: make(chan *MessageRequest, 1000),
-		QueueTime:    0,
-		ServiceTime:  0,
+		MessageQueue:     make(chan *MessageRequest, 1000),
+		QueueTime:        0,
+		ServiceTime:      0,
+		InterArrivalTime: 0,
 	}
 }
 
@@ -109,6 +112,7 @@ func (b *Broker) DoMessageQueue() {
 
 			// 서비스 시간 측정 종료
 			serviceTime := time.Since(message.EnserviceTime)
+
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			b.ServiceTime = avgServiceTime
@@ -122,6 +126,7 @@ func (b *Broker) DoMessageQueue() {
 
 			// 서비스 시간 측정 종료
 			serviceTime := time.Since(message.EnserviceTime)
+
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			b.ServiceTime = avgServiceTime
@@ -135,6 +140,7 @@ func (b *Broker) DoMessageQueue() {
 
 			// 서비스 시간 측정 종료
 			serviceTime := time.Since(message.EnserviceTime)
+
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			b.ServiceTime = avgServiceTime
@@ -144,10 +150,27 @@ func (b *Broker) DoMessageQueue() {
 }
 
 func (b *Broker) PushMessageToQueue(msgReq *MessageRequest) {
+	var totalInterArrivalTime time.Duration
+	var messageCount int64
+
 	// 큐 대기 시간 측정 시작
 	msgReq.EnqueueTime = time.Now()
 
 	b.MessageQueue <- msgReq
+	messageCount++
+
+	if b.LastArrivalTime.IsZero() {
+		b.LastArrivalTime = msgReq.EnqueueTime
+	} else {
+		b.InterArrivalTime = msgReq.EnqueueTime.Sub(b.LastArrivalTime)
+		b.LastArrivalTime = msgReq.EnqueueTime
+
+		totalInterArrivalTime += b.InterArrivalTime
+		avgInterArrivalTime := totalInterArrivalTime / time.Duration(messageCount)
+		b.InterArrivalTime = avgInterArrivalTime
+		log.Printf("Cumulative Average Inter-arrival Time: %v\n", avgInterArrivalTime)
+	}
+
 }
 
 // go routine 1
