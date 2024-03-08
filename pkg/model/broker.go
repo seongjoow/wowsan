@@ -9,10 +9,12 @@ import (
 	grpcClient "wowsan/pkg/broker/transport"
 	pb "wowsan/pkg/proto/broker"
 	grpcSubscriberClient "wowsan/pkg/subscriber/transport"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Broker struct {
-	logger              *log.Logger
+	logger              *logrus.Logger
 	RpcClient           grpcClient.BrokerClient
 	RpcSubscriberClient grpcSubscriberClient.SubscriberClient
 	Id                  string
@@ -35,7 +37,7 @@ type Broker struct {
 }
 
 // public func
-func NewBroker(id, ip, port string, logger *log.Logger) *Broker {
+func NewBroker(id, ip, port string, logger *logrus.Logger) *Broker {
 	rpcClient := grpcClient.NewBrokerClient()
 	rpcSubscriberClient := grpcSubscriberClient.NewSubscriberClient()
 	return &Broker{

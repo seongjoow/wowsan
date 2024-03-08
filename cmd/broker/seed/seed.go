@@ -32,7 +32,10 @@ func initSeed(port string) *model.Broker {
 	s := grpc.NewServer()
 
 	id := "localhost" + ":" + port
-	l := logger.NewLogger(port)
+	l, err := logger.NewLogger(port)
+	if err != nil {
+		log.Fatalf("failed to create logger: %v\n", err)
+	}
 	localBrokerModel := model.NewBroker(id, "localhost", port, l)
 	server := broker.NewBrokerRPCServer(localBrokerModel)
 

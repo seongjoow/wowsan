@@ -12,6 +12,7 @@ import (
 
 	grpcClient "wowsan/pkg/broker/transport"
 
+	"github.com/sirupsen/logrus"
 	grpc "google.golang.org/grpc"
 
 	_cli "wowsan/cmd/broker/seed/cli"
@@ -29,7 +30,7 @@ func brokerPortsGenerator(counts int) (ports []string) {
 
 func performanceLogger(
 	broker *model.Broker,
-	logger *log.Logger) {
+	logger *logrus.Logger) {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 	for {
@@ -58,7 +59,10 @@ func initSeed(port string) *model.Broker {
 	s := grpc.NewServer()
 
 	id := "localhost" + ":" + port
-	l := logger.NewLogger(port)
+	l, err := logger.NewLogger(port)
+	if err != nil {
+		log.Fatalf("failed to create logger: %v\n", err)
+	}
 	localBrokerModel := model.NewBroker(id, "localhost", port, l)
 	server := broker.NewBrokerRPCServer(localBrokerModel)
 
@@ -66,6 +70,9 @@ func initSeed(port string) *model.Broker {
 	go s.Serve(lis)
 	go localBrokerModel.DoMessageQueue()
 	go performanceLogger(localBrokerModel, l)
+	l.WithFields(logrus.Fields{
+		"port": port,
+	}).Info("Broker server listening")
 
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 
@@ -165,6 +172,7 @@ func main() {
 
 			for _, broker := range Brokers {
 				// Show neighbor
+
 				fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
 				for _, neighbor := range broker.Brokers {
 					fmt.Printf("neighbor: %v\n", neighbor.Port)

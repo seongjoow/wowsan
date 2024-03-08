@@ -29,7 +29,10 @@ func ExecutionLoop(ip, port string) {
 	}
 
 	s := grpc.NewServer()
-	logger := logger.NewLogger(port)
+	logger, err := logger.NewLogger(port)
+	if err != nil {
+		log.Fatalf("failed to create logger: %v\n", err)
+	}
 
 	localBrokerModel := model.NewBroker(id, ip, port, logger)
 	server := broker.NewBrokerRPCServer(localBrokerModel)
