@@ -9,6 +9,7 @@ import (
 	"wowsan/pkg/broker"
 	model "wowsan/pkg/model"
 	pb "wowsan/pkg/proto/broker"
+	"wowsan/pkg/simulator"
 
 	grpcClient "wowsan/pkg/broker/transport"
 
@@ -170,14 +171,17 @@ func main() {
 				}
 			}
 
-			for _, broker := range Brokers {
-				// Show neighbor
+			// Print neighbors
+			// for _, broker := range Brokers {
+			// 	fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
+			// 	for _, neighbor := range broker.Brokers {
+			// 		fmt.Printf("neighbor: %v\n", neighbor.Port)
+			// 	}
+			// }
 
-				fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
-				for _, neighbor := range broker.Brokers {
-					fmt.Printf("neighbor: %v\n", neighbor.Port)
-				}
-			}
+			// Graph 시각화
+			simulator.GraphToJSON(Brokers)
+
 			return
 		}
 	}()
