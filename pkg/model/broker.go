@@ -8,6 +8,7 @@ import (
 	"wowsan/constants"
 	grpcClient "wowsan/pkg/broker/transport"
 	pb "wowsan/pkg/proto/broker"
+	"wowsan/pkg/simulator"
 	grpcSubscriberClient "wowsan/pkg/subscriber/transport"
 
 	"github.com/sirupsen/logrus"
@@ -109,7 +110,10 @@ func (b *Broker) DoMessageQueue() {
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()
 
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
+			randomServiceTime := simulator.GetGaussianFigure(2, 0.5)
+			time.Sleep(randomServiceTime)
+
 			b.SendAdvertisement(message)
 
 			// 서비스 시간 측정 종료
