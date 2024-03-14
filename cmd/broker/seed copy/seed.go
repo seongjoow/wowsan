@@ -18,7 +18,7 @@ import (
 	grpc "google.golang.org/grpc"
 
 	_cli "wowsan/cmd/broker/seed/cli"
-	logger "wowsan/pkg/logger"
+	_logger "wowsan/pkg/logger"
 )
 
 var Brokers = []*model.Broker{}
@@ -49,6 +49,12 @@ func performanceLogger(
 
 		interArrivalTime := broker.InterArrivalTime
 
+		cpu, mem := _logger.Utilization()
+		logger.WithFields(logrus.Fields{
+			"cpu": cpu,
+			"mem": mem,
+		}).Info("Utilization")
+
 		logger.Printf("Queue length: %v, Queue time: %v, Service time: %v, Throughput: %v, Inter-Arrival Time: %v\n", queueLength, queueTime, serviceTime, throughput, interArrivalTime)
 	}
 }
@@ -61,7 +67,7 @@ func initSeed(port string) *model.Broker {
 	s := grpc.NewServer()
 
 	id := "localhost" + ":" + port
-	l, err := logger.NewLogger(port)
+	l, err := _logger.NewLogger(port)
 	if err != nil {
 		log.Fatalf("failed to create logger: %v\n", err)
 	}
