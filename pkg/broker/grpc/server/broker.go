@@ -1,5 +1,5 @@
 // broker.go
-package broker
+package server
 
 import (
 	// "fmt"
@@ -8,56 +8,58 @@ import (
 	model "wowsan/pkg/model"
 
 	"context"
-	grpcClient "wowsan/pkg/broker/transport"
+	_brokerUsecase "wowsan/pkg/broker/usecase"
 	pb "wowsan/pkg/proto/broker"
 )
 
 // server is used to implement helloworld.GreeterServer.
 type brokerRPCServer struct {
-	rpcClient   grpcClient.BrokerClient
-	brokerModel *model.Broker
+	brokerUsecase _brokerUsecase.BrokerUsecase
 	pb.UnimplementedBrokerServiceServer
 }
 
-func NewBrokerRPCServer(brokerModel *model.Broker) *brokerRPCServer {
-	rpcClient := grpcClient.NewBrokerClient()
-
+func NewBrokerRPCServer(brokerUsecase _brokerUsecase.BrokerUsecase) *brokerRPCServer {
 	return &brokerRPCServer{
-		rpcClient:   rpcClient,
-		brokerModel: brokerModel,
+		brokerUsecase: brokerUsecase,
 	}
 }
 
 func (brokerRpcServer *brokerRPCServer) AddBroker(ctx context.Context, request *pb.AddBrokerRequest) (*pb.AddBrokerResponse, error) {
-	brokerRpcServer.brokerModel.AddBroker(request.Id, request.Ip, request.Port)
+	broker, err := brokerRpcServer.brokerUsecase.AddBroker(request.Id, request.Ip, request.Port)
+	if err != nil {
+		return &pb.AddBrokerResponse{}, err
+	}
 	fmt.Printf("AddBroker: %s %s %s\n", request.Id, request.Ip, request.Port)
-
 	return &pb.AddBrokerResponse{
-		Id:   brokerRpcServer.brokerModel.Id,
-		Ip:   brokerRpcServer.brokerModel.Ip,
-		Port: brokerRpcServer.brokerModel.Port,
+		Id:   broker.Id,
+		Ip:   broker.Ip,
+		Port: broker.Port,
 	}, nil
 }
 
 func (brokerRpcServer *brokerRPCServer) AddPublisher(ctx context.Context, request *pb.AddClientRequest) (*pb.AddClientResponse, error) {
-	brokerRpcServer.brokerModel.AddPublisher(request.Id, request.Ip, request.Port)
+	_, err := brokerRpcServer.brokerUsecase.AddPublisher(request.Id, request.Ip, request.Port)
+	if err != nil {
+		return &pb.AddClientResponse{}, err
+	}
 	fmt.Printf("AddPublisher: %s %s %s\n", request.Id, request.Ip, request.Port)
-
+	broker := brokerRpcServer.brokerUsecase.GetBroker()
 	return &pb.AddClientResponse{
-		Id:   brokerRpcServer.brokerModel.Id,
-		Ip:   brokerRpcServer.brokerModel.Ip,
-		Port: brokerRpcServer.brokerModel.Port,
+		Id:   broker.Id,
+		Ip:   broker.Ip,
+		Port: broker.Port,
 	}, nil
 }
 
 func (brokerRpcServer *brokerRPCServer) AddSubscriber(ctx context.Context, request *pb.AddClientRequest) (*pb.AddClientResponse, error) {
-	brokerRpcServer.brokerModel.AddSubscriber(request.Id, request.Ip, request.Port)
+	brokerRpcServer.brokerUsecase.AddSubscriber(request.Id, request.Ip, request.Port)
 	fmt.Printf("AddSubscriber: %s %s %s\n", request.Id, request.Ip, request.Port)
 
+	broker := brokerRpcServer.brokerUsecase.GetBroker()
 	return &pb.AddClientResponse{
-		Id:   brokerRpcServer.brokerModel.Id,
-		Ip:   brokerRpcServer.brokerModel.Ip,
-		Port: brokerRpcServer.brokerModel.Port,
+		Id:   broker.Id,
+		Ip:   broker.Ip,
+		Port: broker.Port,
 	}, nil
 }
 
@@ -67,7 +69,7 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushMessageToQueue(
+	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
 			Id:          request.Id,
 			Ip:          request.Ip,
@@ -84,7 +86,7 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 	)
 
 	// 메세지 큐 구현 전 코드
-	// err := brokerRpcServer.brokerModel.SendAdvertisement(
+	// err := brokerRpcServer.brokerUsecase.SendAdvertisement(
 	// 	request.Id,
 	// 	request.Ip,
 	// 	request.Port,
@@ -108,7 +110,7 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushMessageToQueue(
+	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
 			Id:          request.Id,
 			Ip:          request.Ip,
@@ -124,7 +126,7 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 	)
 
 	// 메세지 큐 구현 전 코드
-	// err := brokerRpcServer.brokerModel.SendSubscription(
+	// err := brokerRpcServer.brokerUsecase.SendSubscription(
 	// 	request.Id,
 	// 	request.Ip,
 	// 	request.Port,
@@ -147,7 +149,7 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
-	go brokerRpcServer.brokerModel.PushMessageToQueue(
+	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
 			Id:          request.Id,
 			Ip:          request.Ip,
@@ -161,7 +163,7 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 	)
 
 	// 메세지 큐 구현 전 코드
-	// err := brokerRpcServer.brokerModel.SendPublication(
+	// err := brokerRpcServer.brokerUsecase.SendPublication(
 	// 	request.Id,
 	// 	request.Ip,
 	// 	request.Port,

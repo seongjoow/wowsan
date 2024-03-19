@@ -2,7 +2,8 @@ package main
 
 import (
 	"flag"
-	"wowsan/pkg/broker/cli"
+	cli "wowsan/pkg/broker/cli"
+	"wowsan/pkg/broker/service"
 )
 
 func main() {
@@ -10,6 +11,9 @@ func main() {
 	ip := "localhost"
 	port := flag.String("port", "", "Port that this node should listen on.")
 	flag.Parse()
+
+	brokerService := service.NewBrokerService(ip, *port)
 	// cli.ExecutionLoop(*ip, *port)
-	cli.ExecutionLoop(ip, *port)
+	cli.ExecutionLoop(brokerService)
+
 }

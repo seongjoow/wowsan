@@ -9,7 +9,7 @@ import (
 	"strings"
 
 	"wowsan/constants"
-	grpcClient "wowsan/pkg/broker/transport"
+	grpcClient "wowsan/pkg/broker/grpc/client"
 	model "wowsan/pkg/model"
 	pb "wowsan/pkg/proto/subscriber"
 	"wowsan/pkg/subscriber"

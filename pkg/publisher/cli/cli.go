@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"wowsan/constants"
-	grpcClient "wowsan/pkg/broker/transport"
+	grpcClient "wowsan/pkg/broker/grpc/client"
 	model "wowsan/pkg/model"
 
 	uuid "github.com/satori/go.uuid"

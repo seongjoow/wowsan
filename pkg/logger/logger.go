@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/shirou/gopsutil/process"
 	"github.com/sirupsen/logrus"
 )
 
@@ -32,15 +31,4 @@ func NewLogger(prefix string) (*logrus.Logger, error) {
 	logger.SetLevel(logrus.InfoLevel)
 	logger.SetOutput(file)
 	return logger, nil
-}
-
-func Utilization() (float64, uint64) {
-	pid := os.Getpid()
-	p, err := process.NewProcess(int32(pid))
-	if err != nil {
-		return 0, 0
-	}
-	cpuPercent, _ := p.CPUPercent()
-	memInfo, _ := p.MemoryInfo()
-	return cpuPercent, memInfo.RSS
 }

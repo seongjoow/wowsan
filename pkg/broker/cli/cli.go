@@ -4,54 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"strings"
-	"wowsan/pkg/broker"
-	grpcClient "wowsan/pkg/broker/transport"
-	logger "wowsan/pkg/logger"
-	model "wowsan/pkg/model"
-	pb "wowsan/pkg/proto/broker"
-
-	grpc "google.golang.org/grpc"
+	"wowsan/pkg/broker/service"
 )
 
-func ExecutionLoop(ip, port string) {
-	defaultIP := "localhost"
+func ExecutionLoop(service service.BrokerService) {
 	log.Printf("Interactive shell")
 	log.Printf("Commands: show, add, srt, prt, broker, publisher, subscriber")
-	id := ip + ":" + port
 
-	// rpc server
-	lis, err := net.Listen("tcp", ip+":"+port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
-	}
-
-	s := grpc.NewServer()
-	logger, err := logger.NewLogger(port)
-	if err != nil {
-		log.Fatalf("failed to create logger: %v\n", err)
-	}
-
-	localBrokerModel := model.NewBroker(id, ip, port, logger)
-	server := broker.NewBrokerRPCServer(localBrokerModel)
-
-	pb.RegisterBrokerServiceServer(s, server)
-
-	// if err := s.Serve(lis); err != nil {
-	// 	log.Fatalf("failed to serve: %v\n", err)
-	// }
-	go s.Serve(lis)
-	go localBrokerModel.DoMessageQueue()
-	// go localBrokerModel.DoAdvertisementQueue()
-	// go localBrokerModel.DoSubscriptionQueue()
-	// go localBrokerModel.DoPublicationQueue()
-
-	fmt.Printf("Broker server listening at %v\n", lis.Addr())
-
-	// rpc client
-	rpcClient := grpcClient.NewBrokerClient()
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Printf("CMD-> ")
@@ -83,54 +44,23 @@ func ExecutionLoop(ip, port string) {
 				fmt.Println("Invalid command.")
 				continue
 			}
-			remoteIP := defaultIP
-			remotePort := args[1]
-			myId := id
-			myIp := ip
-			myPort := port
-			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIp, myPort)
-			if err != nil {
-				log.Fatalf("error: %v", err)
-			}
+			service.AddBroker("localhost", args[1])
 
-			localBrokerModel.AddBroker(response.Id, response.Ip, response.Port)
 		case "broker":
-			for _, broker := range localBrokerModel.Brokers {
-				fmt.Println(broker.Id, broker.Ip, broker.Port)
-			}
+			service.Broker()
 
 		case "publisher":
-			for _, publisher := range localBrokerModel.Publishers {
-				fmt.Println(publisher.Id, publisher.Ip, publisher.Port)
-			}
+			service.Publisher()
 
 		case "subscriber":
-			for _, subscriber := range localBrokerModel.Subscribers {
-				fmt.Println(subscriber.Id, subscriber.Ip, subscriber.Port)
-			}
+			service.Subscriber()
 
 		case "srt":
-			// fmt.Println("[SRT]")
-			fmt.Println("-----------[SRT]-----------")
-			for _, item := range localBrokerModel.SRT {
-				fmt.Printf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-				for i := 0; i < len(item.LastHop); i++ {
-					fmt.Printf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
-				}
-				fmt.Println("----------------------------")
-				// fmt.Printf("SRT: %s %s %d\n", item.LastHop[index].ID, item.LastHop[index].NodeType, item.HopCount)
-			}
+			service.Srt()
 
 		case "prt":
-			// fmt.Println("[PRT]")
-			fmt.Println("-----------[PRT]-----------")
-			for _, item := range localBrokerModel.PRT {
-				fmt.Printf("Sub: %s %s %s (%s) | %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-				for i := 0; i < len(item.LastHop); i++ {
-					fmt.Printf("%s | %s\n", item.LastHop[i].Id, item.LastHop[i].NodeType)
-				}
-				fmt.Println("----------------------------")
-			}
+			service.Prt()
+
 		// case "sendAdv":
 		// 	if len(args) != 6 {
 		// 		fmt.Println("Invalid command.")
