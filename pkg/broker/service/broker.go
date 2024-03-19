@@ -25,6 +25,7 @@ type BrokerService interface {
 	Broker()
 	Publisher()
 	Subscriber()
+	GetBroker() *model.Broker
 }
 
 type brokerService struct {
@@ -128,4 +129,8 @@ func (b *brokerService) Subscriber() {
 	for _, subscriber := range broker.Subscribers {
 		fmt.Println(subscriber.Id, subscriber.Ip, subscriber.Port)
 	}
+}
+
+func (b *brokerService) GetBroker() *model.Broker {
+	return b.brokerUsercase.GetBroker()
 }

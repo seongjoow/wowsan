@@ -6,12 +6,14 @@ import (
 	"log"
 	"os"
 	"strings"
-	grpcClient "wowsan/pkg/broker/transport"
+	_grpcBrokerClient "wowsan/pkg/broker/grpc/client"
+	"wowsan/pkg/broker/service"
 	model "wowsan/pkg/model"
 )
 
-func findBroker(brokers []*model.Broker, port string) *model.Broker {
-	for _, broker := range brokers {
+func findBroker(brokerServiceList []service.BrokerService, port string) *model.Broker {
+	for _, brokerService := range brokerServiceList {
+		broker := brokerService.GetBroker()
 		if broker.Port == port {
 			return broker
 		}
@@ -20,7 +22,7 @@ func findBroker(brokers []*model.Broker, port string) *model.Broker {
 	return nil
 }
 
-func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
+func SeedCliLoop(rpcClient _grpcBrokerClient.BrokerClient, brokerServiceList []service.BrokerService) {
 
 	defaultIP := "localhost"
 	scanner := bufio.NewScanner(os.Stdin)
@@ -61,9 +63,10 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 				log.Fatalf("error: %v", err)
 			}
 
-			for _, broker := range brokers {
+			for _, brokerService := range brokerServiceList {
+				broker := brokerService.GetBroker()
 				if broker.Id == myId {
-					broker.AddBroker(response.Id, response.Ip, response.Port)
+					brokerService.AddBroker(response.Ip, response.Port)
 				}
 			}
 
@@ -75,7 +78,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 			}
 			port := args[1]
 
-			broker := findBroker(brokers, port)
+			broker := findBroker(brokerServiceList, port)
 			if broker == nil {
 				continue
 			}
@@ -89,7 +92,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 				continue
 			}
 			port := args[1]
-			broker := findBroker(brokers, port)
+			broker := findBroker(brokerServiceList, port)
 			if broker == nil {
 				continue
 			}
@@ -104,7 +107,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 				continue
 			}
 			port := args[1]
-			broker := findBroker(brokers, port)
+			broker := findBroker(brokerServiceList, port)
 			if broker == nil {
 				continue
 			}
@@ -120,7 +123,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 				continue
 			}
 			port := args[1]
-			broker := findBroker(brokers, port)
+			broker := findBroker(brokerServiceList, port)
 			if broker == nil {
 				continue
 			}
@@ -139,7 +142,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 				continue
 			}
 			port := args[1]
-			broker := findBroker(brokers, port)
+			broker := findBroker(brokerServiceList, port)
 
 			if broker == nil {
 				continue
@@ -153,7 +156,8 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 			}
 
 		case "all":
-			for _, broker := range brokers {
+			for _, brokerSerivce := range brokerServiceList {
+				broker := brokerSerivce.GetBroker()
 				fmt.Println(broker.Id, broker.Ip, broker.Port)
 			}
 		default:

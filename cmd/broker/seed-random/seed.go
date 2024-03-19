@@ -5,23 +5,16 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net"
 	"os"
-	"time"
-	"wowsan/pkg/broker"
 	model "wowsan/pkg/model"
-	pb "wowsan/pkg/proto/broker"
 
-	grpcClient "wowsan/pkg/broker/transport"
+	_grpcBrokerClient "wowsan/pkg/broker/grpc/client"
+	"wowsan/pkg/broker/service"
 
-	"github.com/sirupsen/logrus"
-	grpc "google.golang.org/grpc"
-
-	_cli "wowsan/cmd/broker/seed/cli"
-	_logger "wowsan/pkg/logger"
+	_cli "wowsan/cmd/broker/seed-random/cli"
 )
 
-var Brokers = []*model.Broker{}
+// var Brokers = []*model.Broker{}
 
 func brokerPortsGenerator(counts int) (ports []string) {
 	for i := 0; i < counts; i++ {
@@ -30,67 +23,10 @@ func brokerPortsGenerator(counts int) (ports []string) {
 	return
 }
 
-func performanceLogger(
-	broker *model.Broker,
-	logger *logrus.Logger) {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-	for {
-		<-ticker.C
-		queueLength := len(broker.MessageQueue)
-		queueTime := broker.QueueTime
-		serviceTime := broker.ServiceTime
-		var throughput float64
-		if queueTime+serviceTime == 0 {
-			throughput = 0
-		} else {
-			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
-		}
-
-		interArrivalTime := broker.InterArrivalTime
-
-		cpu, mem := _logger.Utilization()
-		logger.WithFields(logrus.Fields{
-			"cpu": cpu,
-			"mem": mem,
-		}).Info("Utilization")
-
-		logger.Printf("Queue length: %v, Queue time: %v, Service time: %v, Throughput: %v, Inter-Arrival Time: %v\n", queueLength, queueTime, serviceTime, throughput, interArrivalTime)
-	}
-}
-
-func initSeed(port string) *model.Broker {
-	lis, err := net.Listen("tcp", "localhost"+":"+port)
-	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
-	}
-	s := grpc.NewServer()
-
-	id := "localhost" + ":" + port
-	l, err := _logger.NewLogger(port)
-	if err != nil {
-		log.Fatalf("failed to create logger: %v\n", err)
-	}
-	localBrokerModel := model.NewBroker(id, "localhost", port, l)
-	server := broker.NewBrokerRPCServer(localBrokerModel)
-
-	pb.RegisterBrokerServiceServer(s, server)
-	go s.Serve(lis)
-	go localBrokerModel.DoMessageQueue()
-	go performanceLogger(localBrokerModel, l)
-	l.WithFields(logrus.Fields{
-		"port": port,
-	}).Info("Broker server listening")
-
-	fmt.Printf("Broker server listening at %v\n", lis.Addr())
-
-	return localBrokerModel
-}
-
 func main() {
 	var isReady bool
-	var Brokers = []*model.Broker{}
-	rpcBrokerClient := grpcClient.NewBrokerClient()
+	var BrokerServiceList = []service.BrokerService{}
+	grpcBrokerClient := _grpcBrokerClient.NewBrokerClient()
 
 	nodeCount := 10
 	seedBrokers := brokerPortsGenerator(nodeCount)
@@ -101,25 +37,29 @@ func main() {
 	var brokerToAdd *model.Broker
 
 	for index, port := range seedBrokers {
-		broker := initSeed(port)
+		bService := service.NewBrokerService("localhost", port)
 		if index == len(seedBrokers)-1 {
 			isReady = true
 			fmt.Printf("All brokers are ready: %v\n", isReady)
 		}
-		Brokers = append(Brokers, broker)
+		BrokerServiceList = append(BrokerServiceList, bService)
 	}
 
 	go func() {
 		if isReady {
-			for _, broker := range Brokers {
+			for _, brokerService := range BrokerServiceList {
+				broker := brokerService.GetBroker()
+
 				if len(broker.Brokers) > MAX_NEIGHBOR {
+
 					break
 				} else if len(broker.Brokers) < MIN_NEIGHBOR {
 
 					// Randomly add a broker to another broker
 					for len(broker.Brokers) < MIN_NEIGHBOR {
 						randIndex := rand.Intn(nodeCount)
-						brokerToAdd = Brokers[randIndex]
+
+						brokerToAdd = BrokerServiceList[randIndex].GetBroker()
 						if len(brokerToAdd.Brokers) >= MAX_NEIGHBOR {
 							continue
 						}
@@ -127,14 +67,14 @@ func main() {
 						if brokerToAdd.Ip == broker.Ip && brokerToAdd.Port == broker.Port {
 							continue
 						}
-						rpcBrokerClient.RPCAddBroker(
+						grpcBrokerClient.RPCAddBroker(
 							brokerToAdd.Ip,
 							brokerToAdd.Port,
 							broker.Id,
 							broker.Ip,
 							broker.Port,
 						)
-						broker.AddBroker(brokerToAdd.Id, brokerToAdd.Ip, brokerToAdd.Port)
+						brokerService.AddBroker(brokerToAdd.Ip, brokerToAdd.Port)
 						totalNeighbors += 2
 					}
 				}
@@ -150,22 +90,22 @@ func main() {
 					break
 				}
 				if currentAvg < AVG_NEIGHBOR {
-					for i := 0; i < len(Brokers); i++ {
+					for i := 0; i < len(BrokerServiceList); i++ {
 						randIndex := rand.Intn(nodeCount)
-						brokerToAdd = Brokers[randIndex]
+						brokerToAdd = BrokerServiceList[randIndex].GetBroker()
 
-						if randIndex != i && !contains(Brokers[i].Brokers, brokerToAdd) {
-							_, err := rpcBrokerClient.RPCAddBroker(
+						if randIndex != i && !contains(BrokerServiceList[i].GetBroker().Brokers, brokerToAdd) {
+							_, err := grpcBrokerClient.RPCAddBroker(
 								brokerToAdd.Ip,
 								brokerToAdd.Port,
-								Brokers[i].Id,
-								Brokers[i].Ip,
-								Brokers[i].Port,
+								BrokerServiceList[i].GetBroker().Id,
+								BrokerServiceList[i].GetBroker().Ip,
+								BrokerServiceList[i].GetBroker().Port,
 							)
 							if err != nil {
 								fmt.Printf("error: %v", err)
 							}
-							Brokers[i].AddBroker(brokerToAdd.Id, brokerToAdd.Ip, brokerToAdd.Port)
+							BrokerServiceList[i].AddBroker(brokerToAdd.Ip, brokerToAdd.Port)
 							totalNeighbors += 2
 
 							currentAvg = totalNeighbors / nodeCount
@@ -180,20 +120,20 @@ func main() {
 
 			// Print neighbors
 			// for _, broker := range Brokers {
-			// 	fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
-			// 	for _, neighbor := range broker.Brokers {
-			// 		fmt.Printf("neighbor: %v\n", neighbor.Port)
-			// 	}
+			//  fmt.Printf("broker %v has %v neighbor\n", broker.Id, len(broker.Brokers))
+			//  for _, neighbor := range broker.Brokers {
+			//      fmt.Printf("neighbor: %v\n", neighbor.Port)
+			//  }
 			// }
 
 			// Graph 시각화
-			GraphToJSON(Brokers)
+
+			GraphToJSON(BrokerServiceList)
 
 			return
 		}
 	}()
-
-	_cli.SeedCliLoop(rpcBrokerClient, Brokers)
+	_cli.SeedCliLoop(grpcBrokerClient, BrokerServiceList)
 }
 
 func contains(brokers map[string]*model.Broker, broker *model.Broker) bool {
@@ -212,11 +152,12 @@ func contains(brokers map[string]*model.Broker, broker *model.Broker) bool {
 }
 
 // GraphToJSON 함수는 브로커 노드 연결 관계를 JSON 형식으로 반환함
-func GraphToJSON(brokers []*model.Broker) {
+func GraphToJSON(brokerServiceList []service.BrokerService) {
 	// 각 브로커의 이웃 브로커들을 저장할 맵
 	brokerNeighbors := make(map[string][]string)
 
-	for _, broker := range brokers {
+	for _, brokerService := range brokerServiceList {
+		broker := brokerService.GetBroker()
 		// 브로커의 ID를 키로 하여 이웃 브로커들의 ID를 저장
 		for _, neighbor := range broker.Brokers {
 			brokerNeighbors[broker.Id] = append(brokerNeighbors[broker.Id], neighbor.Id)

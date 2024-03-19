@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 	"wowsan/constants"
-	grpcClient "wowsan/pkg/broker/transport"
+	grpcClient "wowsan/pkg/broker/grpc/client"
 	"wowsan/pkg/model"
 	pb "wowsan/pkg/proto/subscriber"
 	"wowsan/pkg/simulator"
