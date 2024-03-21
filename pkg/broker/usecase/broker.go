@@ -495,6 +495,7 @@ func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 	defer ticker.Stop()
 	for {
 		<-ticker.C
+		cpu, mem := utils.Utilization()
 		queueLength := len(broker.MessageQueue)
 		queueTime := broker.QueueTime
 		serviceTime := broker.ServiceTime
@@ -504,18 +505,16 @@ func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 		} else {
 			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
 		}
-
 		interArrivalTime := broker.InterArrivalTime
 
-		cpu, mem := utils.Utilization()
 		uc.logger.WithFields(logrus.Fields{
-			"cpu":              cpu,
-			"mem":              mem,
-			"queueLength":      queueLength,
-			"queueTime":        queueTime,
-			"serviceTime":      serviceTime,
-			"throughput":       throughput,
-			"interArrivalTime": interArrivalTime,
+			"CPU":                cpu,
+			"Memory":             mem,
+			"Queue Length":       queueLength,
+			"Queue Time":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
+			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Throughput":         fmt.Sprintf("%.6f", throughput),
+			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 		}).Info("Performance Metrics")
 
 	}

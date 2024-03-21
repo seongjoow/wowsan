@@ -44,7 +44,7 @@ func NewBrokerService(
 		panic(err)
 	}
 
-	logger, err := logger.NewLogger("broker")
+	logger, err := logger.NewLogger(port)
 	if err != nil {
 		panic(err)
 	}
