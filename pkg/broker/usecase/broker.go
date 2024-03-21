@@ -329,9 +329,9 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 			advValue, _ := strconv.ParseFloat(item.Advertisement.Value, 64)
 			subValue, _ := strconv.ParseFloat(reqPrtItem.Subscription.Value, 64)
 
-			if (item.Advertisement.Operator == ">" && advValue > subValue) ||
+			if (item.Advertisement.Operator == ">" && advValue >= subValue) ||
 				(item.Advertisement.Operator == ">=" && advValue >= subValue) ||
-				(item.Advertisement.Operator == "<" && advValue < subValue) ||
+				(item.Advertisement.Operator == "<" && advValue <= subValue) ||
 				(item.Advertisement.Operator == "<=" && advValue <= subValue) {
 				// PRT에 추가
 				uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
@@ -489,9 +489,9 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	return nil
 }
 
-func (uc *brokerUsecase) PerformanceLogger(checkTime time.Duration) {
+func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 	broker := uc.broker
-	ticker := time.NewTicker(checkTime)
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 	for {
 		<-ticker.C

@@ -64,7 +64,7 @@ func NewBrokerService(
 	go s.Serve(lis)
 	gServer := grpcServer.NewBrokerRPCServer(brokerUsecase)
 	pb.RegisterBrokerServiceServer(s, gServer)
-	go brokerUsecase.PerformanceLogger(3 * time.Second)
+	go brokerUsecase.PerformanceLogger(1 * time.Second)
 
 	go brokerUsecase.DoMessageQueue()
 
