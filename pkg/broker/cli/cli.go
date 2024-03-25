@@ -11,7 +11,7 @@ import (
 
 func ExecutionLoop(service service.BrokerService) {
 	log.Printf("Interactive shell")
-	log.Printf("Commands: show, add, srt, prt, broker, publisher, subscriber")
+	log.Printf("Commands: add, srt, prt, broker, publisher, subscriber")
 
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -41,7 +41,7 @@ func ExecutionLoop(service service.BrokerService) {
 			// remoteIP := args[1]
 			// remotePort := args[2]
 			if len(args) != 2 {
-				fmt.Println("Invalid command.")
+				fmt.Println("Usage: add <ip> <port>")
 				continue
 			}
 			service.AddBroker("localhost", args[1])
@@ -98,6 +98,7 @@ func ExecutionLoop(service service.BrokerService) {
 		default:
 			fmt.Println("Invalid command.")
 		}
+
 		fmt.Printf("CMD-> ")
 	}
 }

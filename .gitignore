@@ -1,0 +1,5 @@
+# ignore json file
+*.json
+
+# png
+*.png

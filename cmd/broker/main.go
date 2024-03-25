@@ -13,7 +13,7 @@ func main() {
 	flag.Parse()
 
 	brokerService := service.NewBrokerService(ip, *port)
+
 	// cli.ExecutionLoop(*ip, *port)
 	cli.ExecutionLoop(brokerService)
-
 }

@@ -18,12 +18,6 @@ func NewPublisher(id string, ip string, port string) *Publisher {
 	}
 }
 
-func (p *Publisher) SetBroker(id string, ip string, port string) *Broker {
-	broker := &Broker{
-		Id:   id,
-		Ip:   ip,
-		Port: port,
-	}
+func (p *Publisher) SetBroker(broker *Broker) {
 	p.Broker = broker
-	return broker
 }
