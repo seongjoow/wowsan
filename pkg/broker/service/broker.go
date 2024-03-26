@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"net"
 	"time"
 
@@ -54,18 +55,26 @@ func NewBrokerService(
 
 	brokerClient := _brokerClient.NewBrokerClient()
 	subscriberClient := _subscriberClient.NewSubscriberClient()
+
 	brokerUsecase := _brokerUsecase.NewBrokerUsecase(
 		logger,
 		broker,
 		brokerClient,
 		subscriberClient,
 	)
+
 	s := grpc.NewServer()
-	go s.Serve(lis)
+
 	gServer := grpcServer.NewBrokerRPCServer(brokerUsecase)
 	pb.RegisterBrokerServiceServer(s, gServer)
-	go brokerUsecase.PerformanceLogger(1 * time.Second)
 
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("failed to serve: %v", err)
+		}
+	}()
+
+	go brokerUsecase.PerformanceLogger(1 * time.Second)
 	go brokerUsecase.DoMessageQueue()
 
 	return &brokerService{
