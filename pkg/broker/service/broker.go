@@ -10,7 +10,7 @@ import (
 	_brokerUsecase "wowsan/pkg/broker/usecase"
 	"wowsan/pkg/logger"
 	"wowsan/pkg/model"
-	_subscriberClient "wowsan/pkg/subscriber/transport"
+	_subscriberClient "wowsan/pkg/subscriber/grpc/client"
 
 	pb "wowsan/pkg/proto/broker"
 

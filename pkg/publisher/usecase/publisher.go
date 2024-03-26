@@ -32,6 +32,7 @@ func NewPublisherUsecase(
 
 func (uc *publisherUsecase) Adv(subject string, operator string, value string, brokerIp string, brokerPort string) {
 	publisher := uc.publisher
+
 	if publisher.Broker == nil {
 		response, err := uc.brokerClient.RPCAddPublisher(brokerIp, brokerPort, publisher.Id, publisher.Ip, publisher.Port)
 		if err != nil {

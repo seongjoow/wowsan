@@ -1,22 +1,21 @@
-package subscriber
+package server
 
 import (
-	"context"
 	"fmt"
-	"log"
 
-	model "wowsan/pkg/model"
+	"context"
 	pb "wowsan/pkg/proto/subscriber"
+	_subscriberUsecase "wowsan/pkg/subscriber/usecase"
 )
 
 type subscriberRPCServer struct {
-	subscriberModel *model.Subscriber
+	subscriberUsecase _subscriberUsecase.SubscriberUsecase
 	pb.UnimplementedSubscriberServiceServer
 }
 
-func NewSubscriberRPCServer(subscriberModel *model.Subscriber) *subscriberRPCServer {
+func NewSubscriberRPCServer(subscriberUsecase _subscriberUsecase.SubscriberUsecase) *subscriberRPCServer {
 	return &subscriberRPCServer{
-		subscriberModel: subscriberModel,
+		subscriberUsecase: subscriberUsecase,
 	}
 }
 
@@ -26,14 +25,14 @@ func (subscriberRpcServer *subscriberRPCServer) ReceivePublication(ctx context.C
 		return &pb.ReceivePublicationResponse{Message: "Id can't be empty"}, nil
 	}
 
-	err := subscriberRpcServer.subscriberModel.ReceivePublication(
+	err := subscriberRpcServer.subscriberUsecase.ReceivePublication(
 		request.Id,
 		request.Subject,
 		request.Operator,
 		request.Value,
 	)
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		fmt.Printf("error: %v", err)
 		return &pb.ReceivePublicationResponse{Message: "fail"}, err
 	}
 

@@ -2,7 +2,6 @@
 package server
 
 import (
-	// "fmt"
 	"fmt"
 	"wowsan/constants"
 	model "wowsan/pkg/model"
@@ -12,7 +11,6 @@ import (
 	pb "wowsan/pkg/proto/broker"
 )
 
-// server is used to implement helloworld.GreeterServer.
 type brokerRPCServer struct {
 	brokerUsecase _brokerUsecase.BrokerUsecase
 	pb.UnimplementedBrokerServiceServer

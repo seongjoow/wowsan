@@ -10,7 +10,7 @@ import (
 	"wowsan/pkg/broker/utils"
 	model "wowsan/pkg/model"
 	"wowsan/pkg/simulator"
-	subscriberTransport "wowsan/pkg/subscriber/transport"
+	subscriberTransport "wowsan/pkg/subscriber/grpc/client"
 
 	pb "wowsan/pkg/proto/broker"
 
