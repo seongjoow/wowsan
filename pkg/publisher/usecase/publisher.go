@@ -40,6 +40,7 @@ func (uc *publisherUsecase) Adv(subject string, operator string, value string, b
 		}
 		broker := model.NewBroker(response.Id, response.Ip, response.Port)
 		publisher.SetBroker(broker)
+		fmt.Printf("Set broker: %s %s %s\n", response.Id, response.Ip, response.Port)
 	}
 
 	hopCount := int64(0)

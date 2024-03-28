@@ -40,6 +40,7 @@ func (uc *subscriberUsecase) Sub(subject string, operator string, value string, 
 		}
 		broker := model.NewBroker(response.Id, response.Ip, response.Port)
 		subscriber.SetBroker(broker)
+		fmt.Printf("Set broker: %s %s %s\n", response.Id, response.Ip, response.Port)
 	}
 
 	_, err := uc.brokerClient.RPCSendSubscription(

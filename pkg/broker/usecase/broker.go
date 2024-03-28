@@ -86,7 +86,8 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		messageCount++
 		avgQueueTime := totalQueueTime / time.Duration(messageCount)
 		broker.QueueTime = avgQueueTime
-		uc.logger.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
+		// uc.logger.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
+		log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 
 		switch message.MessageType {
 		case constants.ADVERTISEMENT:
@@ -105,7 +106,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			uc.broker.ServiceTime = avgServiceTime
-			uc.logger.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
+			log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.SUBSCRIPTION:
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()

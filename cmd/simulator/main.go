@@ -1,20 +1,11 @@
 package main
 
 import (
-	"fmt"
-	"log"
 	"math/rand"
-	"net"
 	"time"
-	"wowsan/constants"
-	grpcClient "wowsan/pkg/broker/grpc/client"
-	"wowsan/pkg/model"
-	pb "wowsan/pkg/proto/subscriber"
+	publisher "wowsan/pkg/publisher/service"
 	"wowsan/pkg/simulator"
-	"wowsan/pkg/subscriber"
-
-	uuid "github.com/satori/go.uuid"
-	"google.golang.org/grpc"
+	subscriber "wowsan/pkg/subscriber/service"
 )
 
 var subjectList = []string{"apple", "tesla", "microsoft", "amazon", "nvidia"}
@@ -27,18 +18,7 @@ func getExpInterval(lambda float64) time.Duration {
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
 func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda float64, brokerIp string, brokerPort string, publisherId string, publisherIp string, publisherPort string) {
-	publisherModel := model.NewPublisher(publisherId, publisherIp, publisherPort)
-	rpcClient := grpcClient.NewBrokerClient()
-
-	if publisherModel.Broker == nil {
-		response, err := rpcClient.RPCAddPublisher(brokerIp, brokerPort, publisherId, publisherIp, publisherPort)
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-
-		publisherModel.SetBroker(response.Id, response.Ip, response.Port)
-		fmt.Printf("Set broker: %s %s %s\n", response.Id, response.Ip, response.Port)
-	}
+	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
 	end := start.Add(time.Duration(durationSeconds) * time.Second)
@@ -48,34 +28,35 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 	value := ""
 	selectedSubjectList := []string{}
 
-	// 시뮬레이션 루프1
+	// Advertise 시뮬레이션 루프
 	for time.Now().Before(end) {
 		subject, operator, value, selectedSubjectList = simulator.AdvPredicateGenerator(subjectList)
 		// value to string
 		// strValue := fmt.Sprintf("%d", value)
 
-		hopCount := int64(0)
 		interval := getExpInterval(advLambda)
 		time.Sleep(interval)
 
-		// 메세지 전달 함수 호출
-		rpcClient.RPCSendAdvertisement(
-			publisherModel.Broker.Ip,
-			publisherModel.Broker.Port,
-			publisherModel.Id,
-			publisherModel.Ip,
-			publisherModel.Port,
-			subject,
-			operator,
-			value,
-			constants.PUBLISHER,
-			hopCount,
-			uuid.NewV4().String(),
-			publisherId,
-		)
+		// // 메세지 전달 함수 호출
+		publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
+
+		// brokerClient.RPCSendAdvertisement(
+		// 	publisherModel.Broker.Ip,
+		// 	publisherModel.Broker.Port,
+		// 	publisherModel.Id,
+		// 	publisherModel.Ip,
+		// 	publisherModel.Port,
+		// 	subject,
+		// 	operator,
+		// 	value,
+		// 	constants.PUBLISHER,
+		// 	hopCount,
+		// 	uuid.NewV4().String(),
+		// 	publisherId,
+		// )
 	}
 
-	// 시뮬레이션 루프2
+	// Publisher 시뮬레이션 루프
 	for time.Now().Before(end) {
 		subject, operator, value := simulator.PubPredicateGenerator(selectedSubjectList)
 		// strValue := fmt.Sprintf("%d", value) // value to string
@@ -84,50 +65,30 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 		time.Sleep(interval)
 
 		// 메세지 전달 함수 호출
-		rpcClient.RPCSendPublication(
-			publisherModel.Broker.Ip,
-			publisherModel.Broker.Port,
-			publisherModel.Id,
-			publisherModel.Ip,
-			publisherModel.Port,
-			subject,
-			operator,
-			value,
-			constants.PUBLISHER,
-			uuid.NewV4().String(),
-		)
+		publisherService.PublisherUsecase.Pub(subject, operator, value, brokerIp, brokerPort)
+
+		// brokerClient.RPCSendPublication(
+		// 	publisherModel.Broker.Ip,
+		// 	publisherModel.Broker.Port,
+		// 	publisherModel.Id,
+		// 	publisherModel.Ip,
+		// 	publisherModel.Port,
+		// 	subject,
+		// 	operator,
+		// 	value,
+		// 	constants.PUBLISHER,
+		// 	uuid.NewV4().String(),
+		// )
 	}
 }
 
 func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp string, brokerPort string, subscriberId string, subscriberIp string, subscriberPort string) {
-	lis, err := net.Listen("tcp", subscriberIp+":"+subscriberPort)
-	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
-	}
-	subscriberModel := model.NewSubscriber(subscriberId, subscriberIp, subscriberPort)
-	// rpc client
-	rpcClient := grpcClient.NewBrokerClient()
-
-	server := subscriber.NewSubscriberRPCServer(subscriberModel)
-	s := grpc.NewServer()
-	pb.RegisterSubscriberServiceServer(s, server)
-
-	go s.Serve(lis)
-
-	if subscriberModel.Broker == nil {
-		response, err := rpcClient.RPCAddSubscriber(brokerIp, brokerPort, subscriberId, subscriberIp, subscriberPort)
-		if err != nil {
-			log.Fatalf("error: %v", err)
-		}
-
-		subscriberModel.SetBroker(response.Id, response.Ip, response.Port)
-		fmt.Printf("Set broker: %s %s %s\n", response.Id, response.Ip, response.Port)
-	}
+	subscriberService := subscriber.NewSubscriberService(subscriberIp, subscriberPort)
 
 	start := time.Now()
 	end := start.Add(time.Duration(durationSeconds) * time.Second)
 
-	// 시뮬레이션 루프
+	// Subscribe 시뮬레이션 루프
 	for time.Now().Before(end) {
 		subject, operator, value := simulator.SubPredicateGenerator()
 		// strValue := fmt.Sprintf("%d", value) // value to string
@@ -136,19 +97,21 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 		time.Sleep(interval)
 
 		// 메세지 전달 함수 호출
-		rpcClient.RPCSendSubscription(
-			subscriberModel.Broker.Ip,
-			subscriberModel.Broker.Port,
-			subscriberModel.Id,
-			subscriberModel.Ip,
-			subscriberModel.Port,
-			subject,
-			operator,
-			value,
-			constants.SUBSCRIBER,
-			uuid.NewV4().String(),
-			subscriberId,
-		)
+		subscriberService.SubscriberUsecase.Sub(subject, operator, value, brokerIp, brokerPort)
+
+		// brokerClient.RPCSendSubscription(
+		// 	subscriberModel.Broker.Ip,
+		// 	subscriberModel.Broker.Port,
+		// 	subscriberModel.Id,
+		// 	subscriberModel.Ip,
+		// 	subscriberModel.Port,
+		// 	subject,
+		// 	operator,
+		// 	value,
+		// 	constants.SUBSCRIBER,
+		// 	uuid.NewV4().String(),
+		// 	subscriberId,
+		// )
 	}
 }
 
@@ -159,8 +122,10 @@ func main() {
 	subLambda := float64(1) / 3
 	duration := 20 // 시뮬레이션 할 총 시간(초)
 
-	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50051", "id1", "localhost", "1111")
+	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50051", "id1", "localhost", "2221")
+	// time.Sleep(3 * time.Second)
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50054", "id2", "localhost", "2222")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50056", "id3", "localhost", "2223")
 
 	// block thread
 	select {}
