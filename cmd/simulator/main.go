@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"math/rand"
 	"time"
 	publisher "wowsan/pkg/publisher/service"
@@ -23,61 +24,52 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 	start := time.Now()
 	end := start.Add(time.Duration(durationSeconds) * time.Second)
 
-	subject := ""
-	operator := ""
-	value := ""
-	selectedSubjectList := []string{}
+	// subject := ""
+	// operator := ""
+	// value := ""
+	// selectedSubjectList := []string{}
+	// 채널 생성
+	subjectListChannel := make(chan []string)
 
 	// Advertise 시뮬레이션 루프
+	go func() {
+		for time.Now().Before(end) {
+			subject, operator, value, newSelectedSubjectList := simulator.AdvPredicateGenerator(subjectList)
+
+			interval := getExpInterval(advLambda)
+			time.Sleep(interval)
+
+			// 채널을 통해 리스트 전송
+			subjectListChannel <- newSelectedSubjectList
+
+			// // 메세지 전달 함수 호출
+			publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
+		}
+
+		close(subjectListChannel) // 고루틴 종료 시 채널 닫기
+	}()
+
+	// Publish 시뮬레이션 루프
 	for time.Now().Before(end) {
-		subject, operator, value, selectedSubjectList = simulator.AdvPredicateGenerator(subjectList)
-		// value to string
-		// strValue := fmt.Sprintf("%d", value)
+		// 채널에서 데이터 수신
+		selectedSubjectList, ok := <-subjectListChannel
+		if !ok {
+			break // 채널이 닫혔다면 루프 종료
+		}
 
-		interval := getExpInterval(advLambda)
-		time.Sleep(interval)
+		fmt.Println(len(selectedSubjectList))
 
-		// // 메세지 전달 함수 호출
-		publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
-		// brokerClient.RPCSendAdvertisement(
-		// 	publisherModel.Broker.Ip,
-		// 	publisherModel.Broker.Port,
-		// 	publisherModel.Id,
-		// 	publisherModel.Ip,
-		// 	publisherModel.Port,
-		// 	subject,
-		// 	operator,
-		// 	value,
-		// 	constants.PUBLISHER,
-		// 	hopCount,
-		// 	uuid.NewV4().String(),
-		// 	publisherId,
-		// )
-	}
+		if len(selectedSubjectList) == 0 {
+			continue
+		}
 
-	// Publisher 시뮬레이션 루프
-	for time.Now().Before(end) {
 		subject, operator, value := simulator.PubPredicateGenerator(selectedSubjectList)
-		// strValue := fmt.Sprintf("%d", value) // value to string
 
 		interval := getExpInterval(pubLambda)
 		time.Sleep(interval)
 
 		// 메세지 전달 함수 호출
 		publisherService.PublisherUsecase.Pub(subject, operator, value, brokerIp, brokerPort)
-
-		// brokerClient.RPCSendPublication(
-		// 	publisherModel.Broker.Ip,
-		// 	publisherModel.Broker.Port,
-		// 	publisherModel.Id,
-		// 	publisherModel.Ip,
-		// 	publisherModel.Port,
-		// 	subject,
-		// 	operator,
-		// 	value,
-		// 	constants.PUBLISHER,
-		// 	uuid.NewV4().String(),
-		// )
 	}
 }
 
@@ -97,20 +89,6 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 
 		// 메세지 전달 함수 호출
 		subscriberService.SubscriberUsecase.Sub(subject, operator, value, brokerIp, brokerPort)
-
-		// brokerClient.RPCSendSubscription(
-		// 	subscriberModel.Broker.Ip,
-		// 	subscriberModel.Broker.Port,
-		// 	subscriberModel.Id,
-		// 	subscriberModel.Ip,
-		// 	subscriberModel.Port,
-		// 	subject,
-		// 	operator,
-		// 	value,
-		// 	constants.SUBSCRIBER,
-		// 	uuid.NewV4().String(),
-		// 	subscriberId,
-		// )
 	}
 }
 

@@ -68,10 +68,10 @@ func (uc *publisherUsecase) Pub(subject string, operator string, value string, b
 	publisher := uc.publisher
 
 	if publisher.Broker == nil {
-		fmt.Printf("This publisher isn't registered to a broker.\n")
+		fmt.Printf("This publisher isn't registered to a broker(%s:%s).\n", brokerIp, brokerPort)
 	}
 	if publisher.Broker.Ip != brokerIp || publisher.Broker.Port != brokerPort {
-		fmt.Printf("This publisher isn't registered to the broker.\n")
+		fmt.Printf("This publisher isn't registered to the broker(%s:%s).\n", brokerIp, brokerPort)
 	}
 
 	_, err := uc.brokerClient.RPCSendPublication(
