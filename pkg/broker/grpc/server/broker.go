@@ -66,20 +66,21 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 	if request.Ip == "" {
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
-
+	performanceInfoArrary := brokerRpcServer.PbPerformanceInfoToModelPerformanceInfo(request.PerformanceInfo)
 	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
-			Id:          request.Id,
-			Ip:          request.Ip,
-			Port:        request.Port,
-			Subject:     request.Subject,
-			Operator:    request.Operator,
-			Value:       request.Value,
-			NodeType:    request.NodeType,
-			HopCount:    request.HopCount,
-			MessageId:   request.MessageId,
-			SenderId:    request.SenderId,
-			MessageType: constants.ADVERTISEMENT,
+			Id:              request.Id,
+			Ip:              request.Ip,
+			Port:            request.Port,
+			Subject:         request.Subject,
+			Operator:        request.Operator,
+			Value:           request.Value,
+			NodeType:        request.NodeType,
+			HopCount:        request.HopCount,
+			MessageId:       request.MessageId,
+			SenderId:        request.SenderId,
+			MessageType:     constants.ADVERTISEMENT,
+			PerformanceInfo: performanceInfoArrary,
 		},
 	)
 
@@ -108,18 +109,20 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
+	performanceInfoArrary := brokerRpcServer.PbPerformanceInfoToModelPerformanceInfo(request.PerformanceInfo)
 	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
-			Id:          request.Id,
-			Ip:          request.Ip,
-			Port:        request.Port,
-			Subject:     request.Subject,
-			Operator:    request.Operator,
-			Value:       request.Value,
-			NodeType:    request.NodeType,
-			MessageId:   request.MessageId,
-			SenderId:    request.SenderId,
-			MessageType: constants.SUBSCRIPTION,
+			Id:              request.Id,
+			Ip:              request.Ip,
+			Port:            request.Port,
+			Subject:         request.Subject,
+			Operator:        request.Operator,
+			Value:           request.Value,
+			NodeType:        request.NodeType,
+			MessageId:       request.MessageId,
+			SenderId:        request.SenderId,
+			MessageType:     constants.SUBSCRIPTION,
+			PerformanceInfo: performanceInfoArrary,
 		},
 	)
 
@@ -147,16 +150,18 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 		return &pb.SendMessageResponse{Message: "IP can't be empty"}, nil
 	}
 
+	performanceInfoArrary := brokerRpcServer.PbPerformanceInfoToModelPerformanceInfo(request.PerformanceInfo)
 	go brokerRpcServer.brokerUsecase.PushMessageToQueue(
 		&model.MessageRequest{
-			Id:          request.Id,
-			Ip:          request.Ip,
-			Port:        request.Port,
-			Subject:     request.Subject,
-			Operator:    request.Operator,
-			Value:       request.Value,
-			NodeType:    request.NodeType,
-			MessageType: constants.PUBLICATION,
+			Id:              request.Id,
+			Ip:              request.Ip,
+			Port:            request.Port,
+			Subject:         request.Subject,
+			Operator:        request.Operator,
+			Value:           request.Value,
+			NodeType:        request.NodeType,
+			MessageType:     constants.PUBLICATION,
+			PerformanceInfo: performanceInfoArrary,
 		},
 	)
 
@@ -176,4 +181,24 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 	// }
 
 	return &pb.SendMessageResponse{Message: "success"}, nil
+}
+
+func (brokerRpcServer *brokerRPCServer) PbPerformanceInfoToModelPerformanceInfo(performanceInfo []*pb.PerformanceInfo) []*model.PerformanceInfo {
+	performanceInfoArrary := []*model.PerformanceInfo{}
+	// pb to model struct
+	for _, performanceInfo := range performanceInfo {
+		performanceInfoArrary = append(performanceInfoArrary, &model.PerformanceInfo{
+			BrokerId:         performanceInfo.BrokerId,
+			Cpu:              performanceInfo.Cpu,
+			Memory:           performanceInfo.Memory,
+			QueueLength:      performanceInfo.QueueLength,
+			QueueTime:        performanceInfo.QueueTime,
+			ServiceTime:      performanceInfo.ServiceTime,
+			ResponseTime:     performanceInfo.ResponseTime,
+			InterArrivalTime: performanceInfo.InterArrivalTime,
+			Throughput:       performanceInfo.Throughput,
+			Timestamp:        performanceInfo.Timestamp,
+		})
+	}
+	return performanceInfoArrary
 }

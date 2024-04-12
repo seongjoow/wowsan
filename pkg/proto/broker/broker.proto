@@ -14,6 +14,7 @@ service BrokerService {
     // rpc SendUnsubscription(SendUnsubscriptionRequest) returns (Response);
 }
 
+
 message AddBrokerRequest {
     string id = 1;
     string ip = 2;
@@ -40,6 +41,20 @@ message SendMessageRequest {
     string messageId = 9;
     string senderId = 10; // 메시지 발생시킨 노드의 id
     // string senderIp = 3;
+    repeated  PerformanceInfo performanceInfo = 11;
+}
+
+message PerformanceInfo {
+    string brokerId = 1;
+    string cpu = 2;
+    string memory = 3;
+    string queueLength = 4;
+    string queueTime = 5;
+    string serviceTime = 6;
+    string responseTime = 7;
+    string interArrivalTime = 8;
+    string throughput = 9;
+    string timestamp = 10;
 }
 
 message SendMessageResponse {

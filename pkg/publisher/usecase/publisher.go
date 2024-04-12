@@ -57,6 +57,7 @@ func (uc *publisherUsecase) Adv(subject string, operator string, value string, b
 		hopCount,
 		uuid.NewV4().String(), // TODO: messageId
 		publisher.Id,
+		[]*model.PerformanceInfo{},
 	)
 	if err != nil {
 		fmt.Printf("error: %v", err)
@@ -83,7 +84,8 @@ func (uc *publisherUsecase) Pub(subject string, operator string, value string, b
 		operator,
 		value,
 		constants.PUBLISHER,
-		uuid.NewV4().String(), // TODO: messageId
+		uuid.NewV4().String(), // TODO: messageId\
+		[]*model.PerformanceInfo{},
 	)
 	if err != nil {
 		fmt.Printf("error: %v", err)

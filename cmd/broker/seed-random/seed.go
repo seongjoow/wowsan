@@ -18,7 +18,7 @@ import (
 
 func brokerPortsGenerator(counts int) (ports []string) {
 	for i := 0; i < counts; i++ {
-		ports = append(ports, fmt.Sprintf("%d", 50051+i))
+		ports = append(ports, fmt.Sprintf("%d", 50001+i))
 	}
 	return
 }
@@ -28,11 +28,11 @@ func main() {
 	var BrokerServiceList = []service.BrokerService{}
 	grpcBrokerClient := _grpcBrokerClient.NewBrokerClient()
 
-	nodeCount := 10
+	nodeCount := 5
 	seedBrokers := brokerPortsGenerator(nodeCount)
 	totalNeighbors := 0
-	MAX_NEIGHBOR := 5
-	AVG_NEIGHBOR := 2
+	MAX_NEIGHBOR := 4
+	AVG_NEIGHBOR := 3
 	MIN_NEIGHBOR := 1
 	var brokerToAdd *model.Broker
 

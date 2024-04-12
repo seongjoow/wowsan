@@ -7,21 +7,46 @@ import (
 )
 
 type MessageRequest struct {
-	Id            string
-	Ip            string
-	Port          string
-	Subject       string
-	Operator      string
-	Value         string
-	NodeType      string
-	HopCount      int64
-	MessageId     string
-	SenderId      string
-	MessageType   string
-	HopId         uuid.UUID
-	EnqueueTime   time.Time
-	EnserviceTime time.Time
+	Id              string
+	Ip              string
+	Port            string
+	Subject         string
+	Operator        string
+	Value           string
+	NodeType        string
+	HopCount        int64
+	MessageId       string
+	SenderId        string
+	MessageType     string
+	HopId           uuid.UUID
+	EnqueueTime     time.Time
+	EnserviceTime   time.Time
+	PerformanceInfo []*PerformanceInfo
 }
+
+type PerformanceInfo struct {
+	BrokerId         string
+	Cpu              string
+	Memory           string
+	QueueLength      string
+	QueueTime        string
+	ServiceTime      string
+	ResponseTime     string
+	InterArrivalTime string
+	Throughput       string
+	Timestamp        string
+}
+
+// func Test() {
+// 	a := &MessageRequest{
+// 		Id:         "id",
+// 		Ip:         "ip",
+// 		Port:       "port",
+// 		LogMessage: []LogMessage{},
+// 	}
+// 	a.LogMessage = append(a.LogMessage, LogMessage{brokerId: "brokerId"})
+// 	a.LogMessage = append(a.LogMessage, LogMessage{brokerId: "brokerId2"})
+// }
 
 // type AdvertisementRequest struct {
 // 	Id        string

@@ -55,6 +55,7 @@ func (uc *subscriberUsecase) Sub(subject string, operator string, value string, 
 		constants.SUBSCRIBER,
 		uuid.NewV4().String(),
 		subscriber.Id,
+		[]*model.PerformanceInfo{},
 	)
 	if err != nil {
 		fmt.Printf("error: %v", err)

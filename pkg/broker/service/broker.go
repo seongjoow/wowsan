@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"time"
+
+	// "time"
 
 	_brokerClient "wowsan/pkg/broker/grpc/client"
 	grpcServer "wowsan/pkg/broker/grpc/server"
@@ -74,7 +75,7 @@ func NewBrokerService(
 		}
 	}()
 
-	go brokerUsecase.PerformanceLogger(1 * time.Second)
+	// go brokerUsecase.PerformanceLogger(1 * time.Second)
 	go brokerUsecase.DoMessageQueue()
 
 	return &brokerService{

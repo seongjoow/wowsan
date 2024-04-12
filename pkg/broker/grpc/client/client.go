@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"time"
+	"wowsan/pkg/model"
 	pb "wowsan/pkg/proto/broker"
 
 	grpc "google.golang.org/grpc"
@@ -20,9 +21,9 @@ type BrokerClient interface {
 	RPCAddPublisher(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
 	RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*pb.AddClientResponse, error)
 
-	RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, senderId string) (*pb.SendMessageResponse, error)
-	RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId, senderId string) (*pb.SendMessageResponse, error) // hopCount int64
-	RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId string) (*pb.SendMessageResponse, error)
+	RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, senderId string, performanceMessageArrary []*model.PerformanceInfo) (*pb.SendMessageResponse, error)
+	RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId, senderId string, performanceMessageArrary []*model.PerformanceInfo) (*pb.SendMessageResponse, error) // hopCount int64
+	RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId string, performanceMessageArrary []*model.PerformanceInfo) (*pb.SendMessageResponse, error)
 
 	// RPCSendMessageToBroker(ip string, port int, message string) error
 }
@@ -94,7 +95,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, senderId string) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subject, operator, value, nodeType string, hopCount int64, messageId, senderId string, performanceInfoArrary []*model.PerformanceInfo) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -103,17 +104,19 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subje
 	defer conn.Close()
 	defer cancel()
 
+	pbPerformanceInfoArray := bc.ModelPerformanceInfoToPbPerformanceInfo(performanceInfoArrary)
 	response, err := c.SendAdvertisement(ctx, &pb.SendMessageRequest{
-		Id:        myId,
-		Ip:        myIp,
-		Port:      myPort,
-		Subject:   subject,
-		Operator:  operator,
-		Value:     value,
-		NodeType:  nodeType,
-		HopCount:  hopCount,
-		MessageId: messageId,
-		SenderId:  senderId,
+		Id:              myId,
+		Ip:              myIp,
+		Port:            myPort,
+		Subject:         subject,
+		Operator:        operator,
+		Value:           value,
+		NodeType:        nodeType,
+		HopCount:        hopCount,
+		MessageId:       messageId,
+		SenderId:        senderId,
+		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
 		log.Fatalf("Response Error: %v", err)
@@ -122,7 +125,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subje
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId, senderId string) (*pb.SendMessageResponse, error) { // hopCount int64
+func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId, senderId string, performanceInfoArrary []*model.PerformanceInfo) (*pb.SendMessageResponse, error) { // hopCount int64
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -131,6 +134,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subjec
 	defer conn.Close()
 	defer cancel()
 
+	pbPerformanceInfoArray := bc.ModelPerformanceInfoToPbPerformanceInfo(performanceInfoArrary)
 	response, err := c.SendSubscription(ctx, &pb.SendMessageRequest{
 		Id:       myId,
 		Ip:       myIp,
@@ -140,17 +144,19 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subjec
 		Value:    value,
 		NodeType: nodeType,
 		// HopCount: hopCount,
-		MessageId: messageId,
-		SenderId:  senderId,
+		MessageId:       messageId,
+		SenderId:        senderId,
+		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
 		log.Fatalf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
+
 	return response, nil
 }
 
-func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId string) (*pb.SendMessageResponse, error) {
+func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject, operator, value, nodeType, messageId string, performanceInfoArray []*model.PerformanceInfo) (*pb.SendMessageResponse, error) {
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
@@ -159,14 +165,16 @@ func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject
 	defer conn.Close()
 	defer cancel()
 
+	pbPerformanceInfoArray := bc.ModelPerformanceInfoToPbPerformanceInfo(performanceInfoArray)
 	response, err := c.SendPublication(ctx, &pb.SendMessageRequest{
-		Id:        myId,
-		Ip:        myIp,
-		Port:      myPort,
-		Subject:   subject,
-		Operator:  operator,
-		Value:     value,
-		MessageId: messageId,
+		Id:              myId,
+		Ip:              myIp,
+		Port:            myPort,
+		Subject:         subject,
+		Operator:        operator,
+		Value:           value,
+		MessageId:       messageId,
+		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
 		log.Fatalf("Response Error: %v", err)
@@ -187,4 +195,25 @@ func rpcConnectTo(ip string) (pb.BrokerServiceClient, *grpc.ClientConn, context.
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 
 	return c, conn, ctx, cancel, err
+}
+
+func (bc *brokerClient) ModelPerformanceInfoToPbPerformanceInfo(performanceInfoArrary []*model.PerformanceInfo) []*pb.PerformanceInfo {
+	pbPerformanceInfoArray := []*pb.PerformanceInfo{}
+	// model to pb struct
+	for _, performanceInfo := range performanceInfoArrary {
+		pbPerformanceInfo := &pb.PerformanceInfo{
+			BrokerId:         performanceInfo.BrokerId,
+			Cpu:              performanceInfo.Cpu,
+			Memory:           performanceInfo.Memory,
+			QueueLength:      performanceInfo.QueueLength,
+			QueueTime:        performanceInfo.QueueTime,
+			ServiceTime:      performanceInfo.ServiceTime,
+			ResponseTime:     performanceInfo.ResponseTime,
+			InterArrivalTime: performanceInfo.InterArrivalTime,
+			Throughput:       performanceInfo.Throughput,
+			Timestamp:        performanceInfo.Timestamp,
+		}
+		pbPerformanceInfoArray = append(pbPerformanceInfoArray, pbPerformanceInfo)
+	}
+	return pbPerformanceInfoArray
 }

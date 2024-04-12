@@ -17,7 +17,7 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda float64, brokerIp string, brokerPort string, publisherId string, publisherIp string, publisherPort string) {
+func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda float64, brokerIp string, brokerPort string, publisherIp string, publisherPort string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
@@ -39,7 +39,6 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 
 		// // 메세지 전달 함수 호출
 		publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
-
 		// brokerClient.RPCSendAdvertisement(
 		// 	publisherModel.Broker.Ip,
 		// 	publisherModel.Broker.Port,
@@ -82,7 +81,7 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 	}
 }
 
-func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp string, brokerPort string, subscriberId string, subscriberIp string, subscriberPort string) {
+func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp string, brokerPort string, subscriberIp string, subscriberPort string) {
 	subscriberService := subscriber.NewSubscriberService(subscriberIp, subscriberPort)
 
 	start := time.Now()
@@ -118,14 +117,16 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 func main() {
 	rand.Seed(time.Now().UnixNano())
 	advLambda := float64(1) / 5 // 단위 시간당 평균 호출 횟수 λ (예: λ = 0.333 이면 3초에 한 번 호출)
-	pubLambda := float64(1) / 2
 	subLambda := float64(1) / 3
+	pubLambda := float64(1) / 2
 	duration := 20 // 시뮬레이션 할 총 시간(초)
 
-	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50051", "id1", "localhost", "2221")
+	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50001", "localhost", "60001")
+	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50002", "localhost", "60002")
 	// time.Sleep(3 * time.Second)
-	go RunSubscriberSimulation(duration, subLambda, "localhost", "50054", "id2", "localhost", "2222")
-	go RunSubscriberSimulation(duration, subLambda, "localhost", "50056", "id3", "localhost", "2223")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50003", "localhost", "60003")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50004", "localhost", "60004")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50005", "localhost", "60005")
 
 	// block thread
 	select {}

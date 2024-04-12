@@ -87,7 +87,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		avgQueueTime := totalQueueTime / time.Duration(messageCount)
 		broker.QueueTime = avgQueueTime
 		// uc.logger.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
-		log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
+		// log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 
 		switch message.MessageType {
 		case constants.ADVERTISEMENT:
@@ -106,7 +106,8 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			uc.broker.ServiceTime = avgServiceTime
-			log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
+
+			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.SUBSCRIPTION:
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()
@@ -120,7 +121,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			uc.broker.ServiceTime = avgServiceTime
-			log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
+			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.PUBLICATION:
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()
@@ -134,7 +135,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			totalServiceTime += serviceTime
 			avgServiceTime := totalServiceTime / time.Duration(messageCount)
 			uc.broker.ServiceTime = avgServiceTime
-			log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
+			// log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
 		}
 	}
 }
@@ -158,7 +159,7 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 		totalInterArrivalTime += uc.broker.InterArrivalTime
 		avgInterArrivalTime := totalInterArrivalTime / time.Duration(messageCount)
 		uc.broker.InterArrivalTime = avgInterArrivalTime
-		log.Printf("Cumulative Average Inter-arrival Time: %v\n", avgInterArrivalTime)
+		// log.Printf("Cumulative Average Inter-arrival Time: %v\n", avgInterArrivalTime)
 	}
 
 }
@@ -181,7 +182,12 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 
 func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// srt := uc.SRT
-
+	newRequestPerformanceInfo := advReq.PerformanceInfo
+	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+	uc.logger.WithFields(logrus.Fields{
+		"Node":            uc.broker.Id,
+		"PerformanceInfo": newRequestPerformanceInfo,
+	}).Info("Advertisement")
 	reqSrtItem := model.NewSRTItem(
 		advReq.Id,
 		advReq.Ip,
@@ -239,6 +245,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 
 	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
 	if isExist == false || isShorter == true {
+
 		newRequest := &pb.SendMessageRequest{
 			Id:        uc.broker.Id,
 			Ip:        uc.broker.Ip,
@@ -267,7 +274,6 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			fmt.Println("From: ", uc.broker.Id)
 			fmt.Println("To:   ", neighbor.Id)
 			fmt.Println("-----------------------")
-
 			// 새로운 요청을 이웃에게 전송
 			_, err := uc.brokerClient.RPCSendAdvertisement(
 				neighbor.Ip,   //remote broker ip
@@ -282,7 +288,9 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 				newRequest.HopCount,
 				newRequest.MessageId,
 				newRequest.SenderId,
+				newRequestPerformanceInfo,
 			)
+
 			if err != nil {
 				uc.logger.Fatalf("error: %v", err)
 				continue
@@ -310,6 +318,12 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 // }
 
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
+	newRequestPerformanceInfo := subReq.PerformanceInfo
+	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+	uc.logger.WithFields(logrus.Fields{
+		"Node":            uc.broker.Id,
+		"PerformanceInfo": newRequestPerformanceInfo,
+	}).Info("Subscription")
 	reqPrtItem := model.NewPRTItem(
 		subReq.Id,
 		subReq.Ip,
@@ -339,6 +353,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
 				// (SRT의 last hop을 따라가면서 전달)
+
 				newRequest := &pb.SendMessageRequest{
 					Id:        uc.broker.Id,
 					Ip:        uc.broker.Ip,
@@ -388,7 +403,9 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 						constants.BROKER,
 						newRequest.MessageId,
 						newRequest.SenderId,
+						newRequestPerformanceInfo,
 					)
+
 					if err != nil {
 						log.Fatalf("error: %v", err)
 						continue
@@ -418,6 +435,13 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 // }
 
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
+	newRequestPerformanceInfo := pubReq.PerformanceInfo
+	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+	uc.logger.WithFields(logrus.Fields{
+		"Node":            uc.broker.Id,
+		"PerformanceInfo": newRequestPerformanceInfo,
+	}).Info("Publication")
+
 	for _, item := range uc.broker.PRT {
 		// subscription의 subject와 publication의 subject가 같은 경우:
 		// 해당 subscription의 last hop으로 publication 전달함.
@@ -475,8 +499,8 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 						pubReq.Value,
 						constants.BROKER,
 						pubReq.MessageId,
+						newRequestPerformanceInfo,
 					)
-
 					if err != nil {
 						log.Fatalf("error: %v", err)
 						continue
@@ -519,4 +543,34 @@ func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 		}).Info("Performance Metrics")
 
 	}
+}
+
+func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
+	broker := uc.broker
+	cpu, mem := utils.Utilization()
+	queueLength := len(broker.MessageQueue)
+	queueTime := broker.QueueTime
+	serviceTime := broker.ServiceTime
+	var throughput float64
+	if queueTime+serviceTime == 0 {
+		throughput = 0
+	} else {
+		throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+	}
+	interArrivalTime := broker.InterArrivalTime
+
+	performanceInfo := &model.PerformanceInfo{
+		BrokerId:         broker.Id,
+		Cpu:              fmt.Sprintf("%f", cpu),
+		Memory:           fmt.Sprint(mem),
+		QueueLength:      fmt.Sprintf("%d", queueLength),
+		QueueTime:        fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
+		ServiceTime:      fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+		ResponseTime:     fmt.Sprintf("%f", (queueTime+serviceTime).Seconds()*1000),
+		InterArrivalTime: fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+		Throughput:       fmt.Sprintf("%.6f", throughput),
+		Timestamp:        fmt.Sprint(time.Now().UnixNano()),
+	}
+
+	return performanceInfo
 }
