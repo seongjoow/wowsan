@@ -187,7 +187,8 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	uc.logger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Info("Advertisement")
+	}).Infof("Advertisement(%s %s %s)", advReq.Subject, advReq.Operator, advReq.Value)
+
 	reqSrtItem := model.NewSRTItem(
 		advReq.Id,
 		advReq.Ip,
@@ -259,10 +260,16 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			SenderId:  advReq.SenderId,
 		}
 
-		// show broker list
-		fmt.Println("==Neighboring Brokers==")
-		for _, neighbor := range uc.broker.Brokers {
-			fmt.Printf("%s\n", neighbor.Id)
+		// // Show neighboring brokers list
+		// fmt.Println("==Neighboring Brokers==")
+		// for _, neighbor := range uc.broker.Brokers {
+		// 	fmt.Printf("%s\n", neighbor.Id)
+		// }
+
+		// Show lasthop list
+		fmt.Println("==Lasthop Brokers==")
+		for _, lastHop := range item.LastHop {
+			fmt.Printf("%s\n", lastHop.Id)
 		}
 
 		for _, neighbor := range uc.broker.Brokers {
@@ -270,7 +277,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			if neighbor.Id == advReq.Id {
 				continue
 			}
-			fmt.Println("--Sending to Neighbor--")
+			fmt.Println("--Sending Adv to Neighbor--")
 			fmt.Println("From: ", uc.broker.Id)
 			fmt.Println("To:   ", neighbor.Id)
 			fmt.Println("-----------------------")
@@ -320,10 +327,12 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+
 	uc.logger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Info("Subscription")
+	}).Infof("Subscription(%s %s %s)", subReq.Subject, subReq.Operator, subReq.Value)
+
 	reqPrtItem := model.NewPRTItem(
 		subReq.Id,
 		subReq.Ip,
@@ -366,8 +375,14 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					SenderId:  subReq.SenderId,
 				}
 
-				// Show neighboring brokers list
-				fmt.Println("==Neighboring Brokers==")
+				// // Show neighboring brokers list
+				// fmt.Println("==Neighboring Brokers==")
+				// for _, neighbor := range uc.broker.Brokers {
+				// 	fmt.Printf("%s\n", neighbor.Id)
+				// }
+
+				// Show lasthop list
+				fmt.Println("==Lasthop Brokers==")
 				for _, lastHop := range item.LastHop {
 					fmt.Printf("%s\n", lastHop.Id)
 				}
@@ -437,10 +452,11 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	newRequestPerformanceInfo := pubReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+
 	uc.logger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Info("Publication")
+	}).Infof("Publication(%s %s %s)", pubReq.Subject, pubReq.Operator, pubReq.Value)
 
 	for _, item := range uc.broker.PRT {
 		// subscription의 subject와 publication의 subject가 같은 경우:

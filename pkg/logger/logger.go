@@ -23,7 +23,10 @@ import (
 func NewLogger(prefix string) (*logrus.Logger, error) {
 	logFileName := fmt.Sprintf("%s.json", prefix)
 	logger := logrus.New()
-	logger.SetFormatter(&logrus.JSONFormatter{TimestampFormat: "2006-01-02 15:04:05"})
+	logger.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat:   "2006-01-02 15:04:05",
+		DisableHTMLEscape: true,
+	})
 	file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0666)
 	if err != nil {
 		return nil, err
