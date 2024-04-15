@@ -260,16 +260,10 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			SenderId:  advReq.SenderId,
 		}
 
-		// // Show neighboring brokers list
-		// fmt.Println("==Neighboring Brokers==")
-		// for _, neighbor := range uc.broker.Brokers {
-		// 	fmt.Printf("%s\n", neighbor.Id)
-		// }
-
-		// Show lasthop list
-		fmt.Println("==Lasthop Brokers==")
-		for _, lastHop := range item.LastHop {
-			fmt.Printf("%s\n", lastHop.Id)
+		// Show neighboring brokers list
+		fmt.Println("==Neighboring Brokers==")
+		for _, neighbor := range uc.broker.Brokers {
+			fmt.Printf("%s\n", neighbor.Id)
 		}
 
 		for _, neighbor := range uc.broker.Brokers {
@@ -397,6 +391,9 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					// if lastHop.NodeType == constants.PUBLISHER {
 					if lastHop.Id == item.Identifier.SenderId {
 						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
+						break
+					}
+					if subReq.Port == lastHop.Port {
 						break
 					}
 					// 	for _, publisher := range uc.Publishers {
