@@ -24,11 +24,12 @@ type BrokerUsecase interface {
 	AddSubscriber(id string, ip string, port string) (*model.Subscriber, error)
 	DoMessageQueue()
 	PushMessageToQueue(msgReq *model.MessageRequest)
-	PerformanceLogger(time time.Duration)
+	PerformanceTickLogger(time time.Duration)
 }
 
 type brokerUsecase struct {
-	logger           *logrus.Logger
+	hopLogger        *logrus.Logger
+	tickLogger       *logrus.Logger
 	broker           *model.Broker
 	brokerClient     brokerTransport.BrokerClient
 	subscriberClient subscriberTransport.SubscriberClient
@@ -36,13 +37,15 @@ type brokerUsecase struct {
 }
 
 func NewBrokerUsecase(
-	logger *logrus.Logger,
+	hopLogger *logrus.Logger,
+	tickLogger *logrus.Logger,
 	broker *model.Broker,
 	brokerClient brokerTransport.BrokerClient,
 	subscriberClient subscriberTransport.SubscriberClient,
 ) BrokerUsecase {
 	return &brokerUsecase{
-		logger:           logger,
+		hopLogger:        hopLogger,
+		tickLogger:       tickLogger,
 		broker:           broker,
 		brokerClient:     brokerClient,
 		subscriberClient: subscriberClient,
@@ -184,7 +187,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// srt := uc.SRT
 	newRequestPerformanceInfo := advReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
-	uc.logger.WithFields(logrus.Fields{
+	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
 	}).Infof("Advertisement(%s %s %s)", advReq.Subject, advReq.Operator, advReq.Value)
@@ -293,7 +296,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			)
 
 			if err != nil {
-				uc.logger.Fatalf("error: %v", err)
+				uc.hopLogger.Fatalf("error: %v", err)
 				continue
 			}
 		}
@@ -322,7 +325,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
 
-	uc.logger.WithFields(logrus.Fields{
+	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
 	}).Infof("Subscription(%s %s %s)", subReq.Subject, subReq.Operator, subReq.Value)
@@ -450,7 +453,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	newRequestPerformanceInfo := pubReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
 
-	uc.logger.WithFields(logrus.Fields{
+	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
 	}).Infof("Publication(%s %s %s)", pubReq.Subject, pubReq.Operator, pubReq.Value)
@@ -527,7 +530,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	return nil
 }
 
-func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
+func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 	broker := uc.broker
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -545,7 +548,7 @@ func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 		}
 		interArrivalTime := broker.InterArrivalTime
 
-		uc.logger.WithFields(logrus.Fields{
+		uc.tickLogger.WithFields(logrus.Fields{
 			"CPU":                cpu,
 			"Memory":             mem,
 			"Queue Length":       queueLength,
@@ -554,7 +557,6 @@ func (uc *brokerUsecase) PerformanceLogger(interval time.Duration) {
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
 			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 		}).Info("Performance Metrics")
-
 	}
 }
 

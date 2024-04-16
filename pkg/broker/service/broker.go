@@ -5,7 +5,7 @@ import (
 	"log"
 	"net"
 
-	// "time"
+	"time"
 
 	_brokerClient "wowsan/pkg/broker/grpc/client"
 	grpcServer "wowsan/pkg/broker/grpc/server"
@@ -31,7 +31,8 @@ type BrokerService interface {
 }
 
 type brokerService struct {
-	logger           *logrus.Logger
+	hopLogger        *logrus.Logger
+	tickLogger       *logrus.Logger
 	brokerUsercase   _brokerUsecase.BrokerUsecase
 	brokerClient     _brokerClient.BrokerClient
 	subscriberClient _subscriberClient.SubscriberClient
@@ -46,7 +47,12 @@ func NewBrokerService(
 		panic(err)
 	}
 
-	logger, err := logger.NewLogger(port)
+	hopLogger, err := logger.NewLogger(port)
+	if err != nil {
+		panic(err)
+	}
+
+	tickLogger, err := logger.NewLogger(port + "_tick")
 	if err != nil {
 		panic(err)
 	}
@@ -58,7 +64,8 @@ func NewBrokerService(
 	subscriberClient := _subscriberClient.NewSubscriberClient()
 
 	brokerUsecase := _brokerUsecase.NewBrokerUsecase(
-		logger,
+		hopLogger,
+		tickLogger,
 		broker,
 		brokerClient,
 		subscriberClient,
@@ -75,11 +82,12 @@ func NewBrokerService(
 		}
 	}()
 
-	// go brokerUsecase.PerformanceLogger(1 * time.Second)
+	go brokerUsecase.PerformanceTickLogger(1 * time.Second)
 	go brokerUsecase.DoMessageQueue()
 
 	return &brokerService{
-		logger:           logger,
+		hopLogger:        hopLogger,
+		tickLogger:       tickLogger,
 		brokerUsercase:   brokerUsecase,
 		brokerClient:     brokerClient,
 		subscriberClient: subscriberClient,
@@ -90,7 +98,7 @@ func (b *brokerService) AddBroker(remoteIp, remotePort string) {
 	broker := b.brokerUsercase.GetBroker()
 	response, err := b.brokerClient.RPCAddBroker(remoteIp, remotePort, broker.Id, broker.Ip, broker.Port)
 	if err != nil {
-		b.logger.Fatalf("error: %v", err)
+		b.hopLogger.Fatalf("error: %v", err)
 	}
 	b.brokerUsercase.AddBroker(response.Id, response.Ip, response.Port)
 }
