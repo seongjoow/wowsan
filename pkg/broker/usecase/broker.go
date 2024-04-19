@@ -115,7 +115,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()
 
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
+			randomServiceTime := simulator.GetGaussianFigure(2, 0.5)
+			time.Sleep(randomServiceTime)
+
 			uc.SendSubscription(message)
 
 			// 서비스 시간 측정 종료
@@ -129,7 +132,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			// 서비스 시간 측정 시작
 			message.EnserviceTime = time.Now()
 
-			time.Sleep(2 * time.Second)
+			// time.Sleep(2 * time.Second)
+			randomServiceTime := simulator.GetGaussianFigure(2, 0.5)
+			time.Sleep(randomServiceTime)
+
 			uc.SendPublication(message)
 
 			// 서비스 시간 측정 종료
@@ -533,13 +539,20 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 	broker := uc.broker
 	ticker := time.NewTicker(interval)
+	bottleneck := bottleneckStatus{}
+
 	defer ticker.Stop()
 	for {
 		<-ticker.C
 		cpu, mem := utils.Utilization()
 		queueLength := len(broker.MessageQueue)
+		// if queueLength > 1 {
+		// 	cpu = cpu + float64(queueLength*10)
+		// 	// 또는 랜덤으로
+		// }
 		queueTime := broker.QueueTime
 		serviceTime := broker.ServiceTime
+		responseTime := queueTime + serviceTime
 		var throughput float64
 		if queueTime+serviceTime == 0 {
 			throughput = 0
@@ -554,10 +567,38 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			"Queue Length":       queueLength,
 			"Queue Time":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
 			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
 			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Bottleneck":         uc.CheckBottleneck(&bottleneck, cpu, responseTime),
 		}).Info("Performance Metrics")
 	}
+}
+
+type bottleneckStatus struct {
+	start           time.Time
+	preResponseTime time.Duration
+	state           bool
+}
+
+func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, cpu float64, responseTime time.Duration) bool {
+	// CPU 사용률이 90% 이상이면서 response time이 증가하는 상태가 n밀리초 이상 지속되면 병목으로 판단
+	var n time.Duration = 1000
+	if cpu >= 1 && responseTime > bottleneckStatus.preResponseTime {
+		if bottleneckStatus.start.IsZero() {
+			bottleneckStatus.start = time.Now()
+		} else {
+			if time.Since(bottleneckStatus.start) > n*time.Millisecond {
+				bottleneckStatus.state = true
+			}
+		}
+	} else {
+		// set the start time to zero and state to false
+		bottleneckStatus.start = time.Time{}
+		bottleneckStatus.state = false
+	}
+	bottleneckStatus.preResponseTime = responseTime
+	return bottleneckStatus.state
 }
 
 func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
@@ -584,7 +625,8 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 		ResponseTime:     fmt.Sprintf("%f", (queueTime+serviceTime).Seconds()*1000),
 		InterArrivalTime: fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 		Throughput:       fmt.Sprintf("%.6f", throughput),
-		Timestamp:        fmt.Sprint(time.Now().UnixNano()),
+		// Timestamp:        fmt.Sprint(time.Now().UnixNano()),
+		Timestamp: fmt.Sprint(time.Now()),
 	}
 
 	return performanceInfo
