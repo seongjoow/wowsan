@@ -94,17 +94,22 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	advLambda := float64(1) / 10 // 단위 시간당 평균 호출 횟수 λ (예: λ = 0.333 이면 3초에 한 번 호출)
-	subLambda := float64(1) / 8
-	pubLambda := float64(1) / 5
+	advLambda := float64(1) / 8 // 단위 시간당 평균 호출 횟수 λ (예: λ = 0.333 이면 3초에 한 번 호출)
+	subLambda := float64(1) / 5
+	pubLambda := float64(1) / 3
 	duration := 30 // 시뮬레이션 할 총 시간(초)
 
 	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50001", "localhost", "60001")
 	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50002", "localhost", "60002")
+	go RunPublisherSimulation(duration, advLambda, pubLambda, "localhost", "50003", "localhost", "60003")
 	// time.Sleep(3 * time.Second)
-	go RunSubscriberSimulation(duration, subLambda, "localhost", "50003", "localhost", "60003")
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50004", "localhost", "60004")
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50005", "localhost", "60005")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50006", "localhost", "60006")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50007", "localhost", "60007")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50008", "localhost", "60008")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50009", "localhost", "60009")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50010", "localhost", "60010")
 
 	// block thread
 	select {}

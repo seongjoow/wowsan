@@ -190,13 +190,16 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 // }
 
 func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
+	// simulator.IncreaseCpuUsage()
+	simulator.IncreaseMemoryUsage(100)
+
 	// srt := uc.SRT
 	newRequestPerformanceInfo := advReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
 	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Infof("Advertisement(%s %s %s)", advReq.Subject, advReq.Operator, advReq.Value)
+	}).Infof("Advertisement(%s %s %s) %s", advReq.Subject, advReq.Operator, advReq.Value, advReq.MessageId)
 
 	reqSrtItem := model.NewSRTItem(
 		advReq.Id,
@@ -328,13 +331,16 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 // }
 
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
+	// simulator.IncreaseCpuUsage()
+	simulator.IncreaseMemoryUsage(100)
+
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
 
 	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Infof("Subscription(%s %s %s)", subReq.Subject, subReq.Operator, subReq.Value)
+	}).Infof("Subscription(%s %s %s) %s", subReq.Subject, subReq.Operator, subReq.Value, subReq.MessageId)
 
 	reqPrtItem := model.NewPRTItem(
 		subReq.Id,
@@ -456,13 +462,16 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 // }
 
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
+	// simulator.IncreaseCpuUsage()
+	simulator.IncreaseMemoryUsage(100)
+
 	newRequestPerformanceInfo := pubReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
 
 	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
 		"PerformanceInfo": newRequestPerformanceInfo,
-	}).Infof("Publication(%s %s %s)", pubReq.Subject, pubReq.Operator, pubReq.Value)
+	}).Infof("Publication(%s %s %s) %s", pubReq.Subject, pubReq.Operator, pubReq.Value, pubReq.MessageId)
 
 	for _, item := range uc.broker.PRT {
 		// subscription의 subject와 publication의 subject가 같은 경우:
@@ -544,7 +553,7 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 	defer ticker.Stop()
 	for {
 		<-ticker.C
-		cpu, mem := utils.Utilization()
+		cpu, memory := utils.Utilization()
 		queueLength := len(broker.MessageQueue)
 		// if queueLength > 1 {
 		// 	cpu = cpu + float64(queueLength*10)
@@ -563,14 +572,14 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 
 		uc.tickLogger.WithFields(logrus.Fields{
 			"CPU":                cpu,
-			"Memory":             mem,
+			"Memory":             memory,
 			"Queue Length":       queueLength,
 			"Queue Time":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
 			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
 			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"Bottleneck":         uc.CheckBottleneck(&bottleneck, cpu, responseTime),
+			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, responseTime),
 		}).Info("Performance Metrics")
 	}
 }
@@ -581,14 +590,14 @@ type bottleneckStatus struct {
 	state           bool
 }
 
-func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, cpu float64, responseTime time.Duration) bool {
-	// CPU 사용률이 90% 이상이면서 response time이 증가하는 상태가 n밀리초 이상 지속되면 병목으로 판단
-	var n time.Duration = 1000
-	if cpu >= 1 && responseTime > bottleneckStatus.preResponseTime {
+func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, memory uint64, responseTime time.Duration) bool {
+	// 메모리 사용량이 100000000이면서 response time이 증가하는 상태가 n초 이상 지속되면 병목으로 판단
+	var n time.Duration = 3
+	if memory >= 100000000 && responseTime > bottleneckStatus.preResponseTime {
 		if bottleneckStatus.start.IsZero() {
 			bottleneckStatus.start = time.Now()
 		} else {
-			if time.Since(bottleneckStatus.start) > n*time.Millisecond {
+			if time.Since(bottleneckStatus.start) > n*time.Second {
 				bottleneckStatus.state = true
 			}
 		}

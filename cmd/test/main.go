@@ -2,7 +2,9 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/shirou/gopsutil/v3/process"
@@ -29,6 +31,9 @@ import (
 
 func main() {
 	pid := os.Getpid()
+
+	IncreaseCpuUsage()
+
 	p, err := process.NewProcess(int32(pid))
 	if err != nil {
 		fmt.Println("프로세스 찾기 실패:", err)
@@ -42,4 +47,19 @@ func main() {
 		fmt.Printf("CPU 사용률: %.2f%%\n", cpuPercent)
 		fmt.Printf("메모리 사용량: %v bytes\n", memInfo.RSS)
 	}
+}
+
+func IncreaseCpuUsage() {
+	var wg sync.WaitGroup
+	for i := 0; i < 100; i++ { // 동시에 여러 고루틴을 실행하여 CPU 사용량 증가
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			result := 0.0
+			for j := 0.0; j < 1000000; j++ {
+				result += math.Sqrt(j) // 계산 비용이 높은 연산
+			}
+		}()
+	}
+	wg.Wait()
 }

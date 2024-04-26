@@ -28,7 +28,7 @@ func main() {
 	var BrokerServiceList = []service.BrokerService{}
 	grpcBrokerClient := _grpcBrokerClient.NewBrokerClient()
 
-	nodeCount := 6
+	nodeCount := 10
 	seedBrokers := brokerPortsGenerator(nodeCount)
 	totalNeighbors := 0
 	MAX_NEIGHBOR := 4
