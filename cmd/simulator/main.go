@@ -111,6 +111,10 @@ func main() {
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50009", "localhost", "60009")
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50010", "localhost", "60010")
 
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50004", "localhost", "60014")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50005", "localhost", "60015")
+	go RunSubscriberSimulation(duration, subLambda, "localhost", "50006", "localhost", "60016")
+
 	// block thread
 	select {}
 }

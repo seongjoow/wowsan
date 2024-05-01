@@ -1,5 +1,6 @@
 # ignore json file
 *.json
+*.log
 
 # png
 *.png

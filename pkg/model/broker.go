@@ -1,6 +1,8 @@
 package model
 
-import "time"
+import (
+	"time"
+)
 
 type Broker struct {
 	Id          string
@@ -31,6 +33,7 @@ func NewBroker(id, ip, port string) *Broker {
 		Subscribers: make(map[string]*Subscriber),
 		Brokers:     make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
+		// PRT:         make([]*PublicationRoutingTableItem, 0),
 		MessageQueue:     make(chan *MessageRequest, 1000),
 		QueueTime:        0,
 		ServiceTime:      0,
