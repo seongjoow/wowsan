@@ -227,15 +227,21 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		if model.MatchingEngineSRT(item, reqSrtItem) {
 			if item.HopCount >= reqSrtItem.HopCount {
 				if item.HopCount == reqSrtItem.HopCount {
+					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
+					uc.broker.SRTmutex.Unlock()
 				}
 				if item.HopCount > reqSrtItem.HopCount {
 					// reqSrtItem.HopCount += 1
+					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
+					uc.broker.SRTmutex.Unlock()
+
 					isShorter = true
 				}
 			}
 			fmt.Println("Same adv already exists.")
+
 			isExist = true
 
 			fmt.Println("============Updated LastHop in SRT============")
@@ -249,7 +255,9 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	if isExist == false {
 		// reqSrtItem.HopCount += 1
 		// srt = append(srt, reqSrtItem)
+		uc.broker.SRTmutex.Lock()
 		uc.broker.SRT = append(uc.broker.SRT, reqSrtItem)
+		uc.broker.SRTmutex.Unlock()
 		fmt.Println("============Added New Adv to SRT============")
 		for _, item := range uc.broker.SRT {
 			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
@@ -368,7 +376,9 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 				(item.Advertisement.Operator == "<" && advValue <= subValue) ||
 				(item.Advertisement.Operator == "<=" && advValue <= subValue) {
 				// PRT에 추가
+				uc.broker.PRTmutex.Lock()
 				uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
+				uc.broker.PRTmutex.Unlock()
 
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
 				// (SRT의 last hop을 따라가면서 전달)

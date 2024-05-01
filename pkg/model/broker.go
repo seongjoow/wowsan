@@ -1,6 +1,7 @@
 package model
 
 import (
+	"sync"
 	"time"
 )
 
@@ -13,6 +14,8 @@ type Broker struct {
 	Subscribers map[string]*Subscriber
 	SRT         []*SubscriptionRoutingTableItem
 	PRT         []*PublicationRoutingTableItem
+	SRTmutex    *sync.Mutex
+	PRTmutex    *sync.Mutex
 	// Message queue
 	MessageQueue chan *MessageRequest
 
@@ -34,6 +37,8 @@ func NewBroker(id, ip, port string) *Broker {
 		Brokers:     make(map[string]*Broker),
 		// SRT:         make([]*SubscriptionRoutingTableItem, 0),
 		// PRT:         make([]*PublicationRoutingTableItem, 0),
+		SRTmutex:         new(sync.Mutex),
+		PRTmutex:         new(sync.Mutex),
 		MessageQueue:     make(chan *MessageRequest, 1000),
 		QueueTime:        0,
 		ServiceTime:      0,
