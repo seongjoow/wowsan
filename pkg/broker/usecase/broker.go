@@ -230,12 +230,14 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
 					uc.broker.SRTmutex.Unlock()
+					LogBrokerInfoToLogfile(uc.broker)
 				}
 				if item.HopCount > reqSrtItem.HopCount {
 					// reqSrtItem.HopCount += 1
 					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
 					uc.broker.SRTmutex.Unlock()
+					LogBrokerInfoToLogfile(uc.broker)
 
 					isShorter = true
 				}
@@ -258,6 +260,8 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		uc.broker.SRTmutex.Lock()
 		uc.broker.SRT = append(uc.broker.SRT, reqSrtItem)
 		uc.broker.SRTmutex.Unlock()
+		LogBrokerInfoToLogfile(uc.broker)
+
 		fmt.Println("============Added New Adv to SRT============")
 		for _, item := range uc.broker.SRT {
 			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
@@ -402,6 +406,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 							uc.broker.PRTmutex.Lock()
 							uc.broker.PRT[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
 							uc.broker.PRTmutex.Unlock()
+							LogBrokerInfoToLogfile(uc.broker)
 
 							isExist = true
 							break
@@ -415,6 +420,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					uc.broker.PRTmutex.Lock()
 					uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
 					uc.broker.PRTmutex.Unlock()
+					LogBrokerInfoToLogfile(uc.broker)
 				}
 
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
@@ -630,7 +636,7 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, responseTime),
 		}).Info("Performance Metrics")
 
-		LogBrokerInfoToLogfile(broker)
+		// LogBrokerInfoToLogfile(broker)
 	}
 }
 
