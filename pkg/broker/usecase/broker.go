@@ -218,7 +218,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	isExist := false
 	isShorter := false
 
-	// 새로운 advertisement가 아닌 경우 (같은 advertisement가 이미 존재하는 경우):
+	// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
 	// 건너온 hop이 더 짧으면 last hop을 추가하고
 	// 건너온 hop이 같으면 기존 last hop을 대체함.
 	for index, item := range uc.broker.SRT {
@@ -363,22 +363,59 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 		subReq.SenderId,
 	)
 
-	for _, item := range uc.broker.SRT {
-		// advertisement에 subscription이 포함되는 경우:
-		// PRT에 추가하고, 해당 advertisement의 last hop으로 subscription 전달함.
-		if item.Advertisement.Subject == reqPrtItem.Subscription.Subject &&
-			item.Advertisement.Operator == reqPrtItem.Subscription.Operator {
-			advValue, _ := strconv.ParseFloat(item.Advertisement.Value, 64)
+	for _, srtItem := range uc.broker.SRT {
+		isExist := false
+
+		// advertisement의 subject와 operator가 subscription의 subject와 operator와 일치하는 경우:
+		if srtItem.Advertisement.Subject == reqPrtItem.Subscription.Subject &&
+			srtItem.Advertisement.Operator == reqPrtItem.Subscription.Operator {
+			advValue, _ := strconv.ParseFloat(srtItem.Advertisement.Value, 64)
 			subValue, _ := strconv.ParseFloat(reqPrtItem.Subscription.Value, 64)
 
-			if (item.Advertisement.Operator == ">" && advValue >= subValue) ||
-				(item.Advertisement.Operator == ">=" && advValue >= subValue) ||
-				(item.Advertisement.Operator == "<" && advValue <= subValue) ||
-				(item.Advertisement.Operator == "<=" && advValue <= subValue) {
+			// advertisement에 subscription이 포함되는 경우:
+			// PRT에 추가하고, 해당 advertisement의 last hop으로 subscription 전달함.
+			if (srtItem.Advertisement.Operator == ">" && advValue >= subValue) ||
+				(srtItem.Advertisement.Operator == ">=" && advValue >= subValue) ||
+				(srtItem.Advertisement.Operator == "<" && advValue <= subValue) ||
+				(srtItem.Advertisement.Operator == "<=" && advValue <= subValue) {
+
+				isSameLastHop := false
+
+				// 새로운 subscription이 아닌 경우 (같은 내용의 subscription이 이미 존재하는 경우):
+				// PRT의 해당 item에 last hop 슬라이스에 없으면 추가, 있으면 추가하지 않음.
+				for index, prtItem := range uc.broker.PRT {
+					if prtItem.Identifier.MessageId == reqPrtItem.Identifier.MessageId {
+						// PRT의 last hop 슬라이스에 주소가 이미 존재하는 경우:
+						// last hop 슬라이스 업데이트하지 않음
+						for _, lastHop := range prtItem.LastHop {
+							// if lastHop.Address == subReq.Address {
+							if lastHop.Id == subReq.Id {
+								isSameLastHop = true
+								isExist = true
+								break
+							}
+						}
+
+						// PRT의 last hop 슬라이스에 주소가 존재하지 않는 경우:
+						// last hop 슬라이스 업데이트함
+						if !isSameLastHop {
+							uc.broker.PRTmutex.Lock()
+							uc.broker.PRT[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
+							uc.broker.PRTmutex.Unlock()
+
+							isExist = true
+							break
+						}
+					}
+				}
+
+				// 새로운 subscription인 경우:
 				// PRT에 추가
-				uc.broker.PRTmutex.Lock()
-				uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
-				uc.broker.PRTmutex.Unlock()
+				if !isExist {
+					uc.broker.PRTmutex.Lock()
+					uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
+					uc.broker.PRTmutex.Unlock()
+				}
 
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
 				// (SRT의 last hop을 따라가면서 전달)
@@ -403,11 +440,11 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 				// Show lasthop list
 				fmt.Println("==Lasthop Brokers==")
-				for _, lastHop := range item.LastHop {
+				for _, lastHop := range srtItem.LastHop {
 					fmt.Printf("%s\n", lastHop.Id)
 				}
 
-				for _, lastHop := range item.LastHop {
+				for _, lastHop := range srtItem.LastHop {
 					fmt.Println("--Routing Sub via SRT--")
 					fmt.Println("From: ", uc.broker.Id)
 					fmt.Println("To:   ", lastHop.Id)
@@ -415,7 +452,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
-					if lastHop.Id == item.Identifier.SenderId {
+					if lastHop.Id == srtItem.Identifier.SenderId {
 						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
 						break
 					}
