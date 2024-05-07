@@ -41,21 +41,24 @@ type brokerService struct {
 func NewBrokerService(
 	ip string,
 	port string,
+	baseDir string,
 ) BrokerService {
 	lis, err := net.Listen("tcp", ip+":"+port)
 	if err != nil {
 		panic(err)
 	}
 
-	hopLogger, err := logger.NewLogger(port)
+	hopLogger, err := logger.NewLogger(port, "./log/hopLogger/"+baseDir)
+	if err != nil {
+		panic(err)
+	}
+	tickLogger, err := logger.NewLogger(port+"_tick", "./log/tickLogger/"+baseDir)
 	if err != nil {
 		panic(err)
 	}
 
-	tickLogger, err := logger.NewLogger(port + "_tick")
-	if err != nil {
-		panic(err)
-	}
+	brokerLoggerDir := "./log/brokerInfoLogger/" + baseDir
+	brokerLogger := logger.NewBrokerInfoLogger(brokerLoggerDir)
 
 	id := ip + ":" + port
 	broker := model.NewBroker(id, ip, port)
@@ -66,6 +69,7 @@ func NewBrokerService(
 	brokerUsecase := _brokerUsecase.NewBrokerUsecase(
 		hopLogger,
 		tickLogger,
+		brokerLogger,
 		broker,
 		brokerClient,
 		subscriberClient,

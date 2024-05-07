@@ -3,12 +3,12 @@ package usecase
 import (
 	"fmt"
 	"log"
-	"os"
 	"strconv"
 	"time"
 	"wowsan/constants"
 	brokerTransport "wowsan/pkg/broker/grpc/client"
 	"wowsan/pkg/broker/utils"
+	"wowsan/pkg/logger"
 	model "wowsan/pkg/model"
 	"wowsan/pkg/simulator"
 	subscriberTransport "wowsan/pkg/subscriber/grpc/client"
@@ -31,6 +31,7 @@ type BrokerUsecase interface {
 type brokerUsecase struct {
 	hopLogger        *logrus.Logger
 	tickLogger       *logrus.Logger
+	brokerInfoLogger *logger.BrokerInfoLogger
 	broker           *model.Broker
 	brokerClient     brokerTransport.BrokerClient
 	subscriberClient subscriberTransport.SubscriberClient
@@ -40,6 +41,7 @@ type brokerUsecase struct {
 func NewBrokerUsecase(
 	hopLogger *logrus.Logger,
 	tickLogger *logrus.Logger,
+	brokerInfoLogger *logger.BrokerInfoLogger,
 	broker *model.Broker,
 	brokerClient brokerTransport.BrokerClient,
 	subscriberClient subscriberTransport.SubscriberClient,
@@ -47,6 +49,7 @@ func NewBrokerUsecase(
 	return &brokerUsecase{
 		hopLogger:        hopLogger,
 		tickLogger:       tickLogger,
+		brokerInfoLogger: brokerInfoLogger,
 		broker:           broker,
 		brokerClient:     brokerClient,
 		subscriberClient: subscriberClient,
@@ -230,14 +233,16 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
 					uc.broker.SRTmutex.Unlock()
-					LogBrokerInfoToLogfile(uc.broker)
+					uc.brokerInfoLogger.GetBrokerInfo(
+						uc.broker,
+					)
 				}
 				if item.HopCount > reqSrtItem.HopCount {
 					// reqSrtItem.HopCount += 1
 					uc.broker.SRTmutex.Lock()
 					uc.broker.SRT[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
 					uc.broker.SRTmutex.Unlock()
-					LogBrokerInfoToLogfile(uc.broker)
+					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 					isShorter = true
 				}
@@ -260,7 +265,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		uc.broker.SRTmutex.Lock()
 		uc.broker.SRT = append(uc.broker.SRT, reqSrtItem)
 		uc.broker.SRTmutex.Unlock()
-		LogBrokerInfoToLogfile(uc.broker)
+		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 		fmt.Println("============Added New Adv to SRT============")
 		for _, item := range uc.broker.SRT {
@@ -406,7 +411,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 							uc.broker.PRTmutex.Lock()
 							uc.broker.PRT[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
 							uc.broker.PRTmutex.Unlock()
-							LogBrokerInfoToLogfile(uc.broker)
+							uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 							isExist = true
 							break
@@ -420,7 +425,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					uc.broker.PRTmutex.Lock()
 					uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
 					uc.broker.PRTmutex.Unlock()
-					LogBrokerInfoToLogfile(uc.broker)
+					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 				}
 
 				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
@@ -695,58 +700,4 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 	}
 
 	return performanceInfo
-}
-
-func LogBrokerInfoToLogfile(broker *model.Broker) {
-	// save to log file (broker_id.log)
-	// if file doesn't exist, create it, otherwise append to the file
-	logFile, err := os.OpenFile("log/"+broker.Port+".log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer logFile.Close()
-	log.SetOutput(logFile)
-	brokerInfoString := "==Broker Info==\n"
-	brokerInfoString += fmt.Sprintf("Id: %s\n", broker.Id)
-	brokerInfoString += fmt.Sprintf("Ip: %s\n", broker.Ip)
-	brokerInfoString += fmt.Sprintf("Port: %s\n", broker.Port)
-
-	publishersString := "==Publishers==\n"
-	for _, publisher := range broker.Publishers {
-		publishersString += fmt.Sprintf("Id: %s\n", publisher.Id)
-		publishersString += fmt.Sprintf("Ip: %s\n", publisher.Ip)
-		publishersString += fmt.Sprintf("Port: %s\n", publisher.Port)
-	}
-	subscribersString := "==Subscribers==\n"
-	for _, subscriber := range broker.Subscribers {
-		subscribersString += fmt.Sprintf("Id: %s\n", subscriber.Id)
-		subscribersString += fmt.Sprintf("Ip: %s\n", subscriber.Ip)
-		subscribersString += fmt.Sprintf("Port: %s\n", subscriber.Port)
-	}
-	brokerString := "==Brokers==\n"
-	for _, neighbor := range broker.Brokers {
-		brokerString += fmt.Sprintf("Id: %s\n", neighbor.Id)
-		brokerString += fmt.Sprintf("Ip: %s\n", neighbor.Ip)
-		brokerString += fmt.Sprintf("Port: %s\n", neighbor.Port)
-	}
-	itemsSrt := "==SRT==\n"
-	for _, item := range broker.SRT {
-		itemsSrt += fmt.Sprintf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-		for i := 0; i < len(item.LastHop); i++ {
-			itemsSrt += fmt.Sprintf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
-		}
-		itemsSrt += fmt.Sprintf("----------------------------\n")
-	}
-
-	itemsPrt := "==PRT==\n"
-
-	for _, item := range broker.PRT {
-		itemsPrt += fmt.Sprintf("Sub: %s %s %s (%s) | %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-		for i := 0; i < len(item.LastHop); i++ {
-			itemsPrt += fmt.Sprintf("%s | %s\n", item.LastHop[i].Id, item.LastHop[i].NodeType)
-		}
-		itemsPrt += fmt.Sprintf("----------------------------\n")
-	}
-
-	log.Printf(brokerInfoString + publishersString + subscribersString + brokerString + itemsSrt + itemsPrt)
 }

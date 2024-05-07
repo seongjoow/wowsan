@@ -6,6 +6,7 @@ import (
 	"log"
 	"math/rand"
 	"os"
+	"time"
 	model "wowsan/pkg/model"
 
 	_grpcBrokerClient "wowsan/pkg/broker/grpc/client"
@@ -36,8 +37,10 @@ func main() {
 	MIN_NEIGHBOR := 1
 	var brokerToAdd *model.Broker
 
+	logDirTimestamp := time.Now().Format("20060102_150405")
+
 	for index, port := range seedBrokers {
-		bService := service.NewBrokerService("localhost", port)
+		bService := service.NewBrokerService("localhost", port, logDirTimestamp)
 		if index == len(seedBrokers)-1 {
 			isReady = true
 			fmt.Printf("All brokers are ready: %v\n", isReady)
