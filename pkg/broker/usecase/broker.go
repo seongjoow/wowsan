@@ -87,6 +87,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	broker := uc.broker
 	for {
 		message := <-broker.MessageQueue
+
+		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
+		uc.broker.Close = time.Now()
+
 		// 큐 대기 시간 측정 종료
 		queueTime := time.Since(message.EnqueueTime)
 		totalQueueTime += queueTime

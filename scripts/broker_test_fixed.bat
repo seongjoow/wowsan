@@ -24,7 +24,7 @@ IF EXIST "./%TICK_DIR_NAME%%MAX_INDEX%" (
 )
 
 FOR /L %%P IN (50001, 1, 50010) DO (
-    START "Broker Service on Port %%P" cmd /k go run .\cmd\broker\main_test_fixed.go --port %%P --dir_index %MAX_INDEX%
+    START "Broker Service on Port %%P" cmd /c go run .\cmd\broker\main_test_fixed.go --port %%P --dir_index %MAX_INDEX%
 )
 
 endlocal

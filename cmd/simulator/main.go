@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net/http"
 	"time"
 	publisher "wowsan/pkg/publisher/service"
 	"wowsan/pkg/simulator"
@@ -115,6 +116,7 @@ func main() {
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50005", "localhost", "60015")
 	go RunSubscriberSimulation(duration, subLambda, "localhost", "50006", "localhost", "60016")
 
-	// block thread
-	select {}
+	// wait until all goroutines are finished
+	time.Sleep(time.Duration(duration) * time.Second)
+	http.PostForm("http://localhost:8080/simulator/done", map[string][]string{})
 }

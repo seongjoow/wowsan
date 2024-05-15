@@ -1,8 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
+	"net/http"
+	"time"
 	cli "wowsan/pkg/broker/cli"
 	client "wowsan/pkg/broker/grpc/client"
 	"wowsan/pkg/broker/service"
@@ -18,6 +22,7 @@ func main() {
 
 	brokerService := service.NewBrokerService(ip, *port, *dirIndex)
 	brokerClient := client.NewBrokerClient()
+	http.PostForm("http://localhost:8080/init_broker", map[string][]string{"port": {*port}})
 
 	brokersToAdd := []model.Broker{}
 
@@ -99,22 +104,39 @@ func main() {
 		brokersToAdd = append(brokersToAdd, *brokerToAdd)
 	}
 
-	for _, brokerToAdd := range brokersToAdd {
+	go func() {
+		for {
+			resp, _ := http.Get("http://localhost:8080/get_broker_server_ready")
+			bodyBytes, _ := io.ReadAll(resp.Body)
+			var respJson map[string]interface{} // JSON 응답을 저장할 맵
+			err := json.Unmarshal(bodyBytes, &respJson)
+			if err != nil {
+				// JSON 파싱 에러 처리
+				panic(err)
+			}
+			fmt.Printf("respJson: %v\n", respJson)
+			if ready, ok := respJson["ready"].(bool); ok && ready {
+				for _, brokerToAdd := range brokersToAdd {
 
-		broker := brokerService.GetBroker()
+					broker := brokerService.GetBroker()
 
-		_, err := brokerClient.RPCAddBroker(
-			brokerToAdd.Ip,
-			brokerToAdd.Port,
-			broker.Id,
-			broker.Ip,
-			broker.Port,
-		)
-		if err != nil {
-			fmt.Printf("error: %v\n", err)
+					_, err := brokerClient.RPCAddBroker(
+						brokerToAdd.Ip,
+						brokerToAdd.Port,
+						broker.Id,
+						broker.Ip,
+						broker.Port,
+					)
+					if err != nil {
+						fmt.Printf("error: %v\n", err)
+					}
+					brokerService.AddBroker(brokerToAdd.Ip, brokerToAdd.Port)
+				}
+				break
+			}
+			time.Sleep(1 * time.Second)
 		}
-		brokerService.AddBroker(brokerToAdd.Ip, brokerToAdd.Port)
-	}
+	}()
 
 	// brokerToAdd := service.NewBrokerService("localhost", "50002", *dirIndex)
 	// brokerToAdd := &model.Broker{

@@ -24,6 +24,9 @@ type Broker struct {
 	ServiceTime      time.Duration
 	LastArrivalTime  time.Time
 	InterArrivalTime time.Duration
+
+	// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록하는 변수
+	Close time.Time
 }
 
 // public func
@@ -43,5 +46,6 @@ func NewBroker(id, ip, port string) *Broker {
 		QueueTime:        0,
 		ServiceTime:      0,
 		InterArrivalTime: 0,
+		Close:            time.Now(),
 	}
 }
