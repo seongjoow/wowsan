@@ -28,11 +28,11 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 func main() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
+		log.Printf("failed to listen: %v\n", err)
 	}
 	s := grpc.NewServer()
 	pb.RegisterGreeterServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v\n", err)
+		log.Printf("failed to serve: %v\n", err)
 	}
 }

@@ -58,7 +58,7 @@ func SeedCliLoop(rpcClient grpcClient.BrokerClient, brokers []*model.Broker) {
 
 			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIp, myPort)
 			if err != nil {
-				log.Fatalf("error: %v", err)
+				log.Printf("error: %v", err)
 			}
 
 			for _, broker := range brokers {

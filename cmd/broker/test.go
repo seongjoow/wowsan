@@ -19,7 +19,7 @@ func main() {
 
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
+		log.Printf("failed to listen: %v\n", err)
 	}
 
 	s := grpc.NewServer()
@@ -30,7 +30,7 @@ func main() {
 	pb.RegisterBrokerServiceServer(s, server)
 	go s.Serve(lis)
 	// if err := s.Serve(lis); err != nil {
-	// 	log.Fatalf("failed to serve: %v\n", err)
+	// 	log.Printf("failed to serve: %v\n", err)
 	// }
 	fmt.Printf("Broker server listening at %v\n", lis.Addr())
 	select {}

@@ -36,7 +36,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIp, myPort string) (*pb.A
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -47,7 +47,7 @@ func (bc *brokerClient) RPCAddBroker(ip, port, myId, myIp, myPort string) (*pb.A
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.AddBrokerResponse{}, err
 	}
 	return response, nil
@@ -57,7 +57,7 @@ func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIp, myPort string) (*p
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -68,7 +68,7 @@ func (bc *brokerClient) RPCAddPublisher(ip, port, myId, myIp, myPort string) (*p
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.AddClientResponse{}, err
 	}
 	return response, nil
@@ -78,7 +78,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -89,7 +89,7 @@ func (bc *brokerClient) RPCAddSubscriber(ip, port, myId, myIp, myPort string) (*
 		Port: myPort,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.AddClientResponse{}, err
 	}
 	return response, nil
@@ -99,7 +99,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subje
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -119,7 +119,7 @@ func (bc *brokerClient) RPCSendAdvertisement(ip, port, myId, myIp, myPort, subje
 		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil
@@ -129,7 +129,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subjec
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -149,7 +149,7 @@ func (bc *brokerClient) RPCSendSubscription(ip, port, myId, myIp, myPort, subjec
 		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 
@@ -160,7 +160,7 @@ func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("Did not connect: %v\n", err)
+		log.Printf("Did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -177,7 +177,7 @@ func (bc *brokerClient) RPCSendPublication(ip, port, myId, myIp, myPort, subject
 		PerformanceInfo: pbPerformanceInfoArray,
 	})
 	if err != nil {
-		log.Fatalf("Response Error: %v", err)
+		log.Printf("Response Error: %v", err)
 		return &pb.SendMessageResponse{}, err
 	}
 	return response, nil

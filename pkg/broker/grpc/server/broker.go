@@ -96,7 +96,7 @@ func (brokerRpcServer *brokerRPCServer) SendAdvertisement(ctx context.Context, r
 	// 	request.NodeType,
 	// )
 	// if err != nil {
-	// 	log.Fatalf("error: %v", err)
+	// 	log.Printf("error: %v", err)
 	// 	return &pb.SendMessageResponse{Message: "fail"}, err
 	// }
 
@@ -137,7 +137,7 @@ func (brokerRpcServer *brokerRPCServer) SendSubscription(ctx context.Context, re
 	// 	request.NodeType,
 	// )
 	// if err != nil {
-	// 	log.Fatalf("error: %v", err)
+	// 	log.Printf("error: %v", err)
 	// 	return &pb.SendMessageResponse{Message: "fail"}, err
 	// }
 
@@ -176,7 +176,7 @@ func (brokerRpcServer *brokerRPCServer) SendPublication(ctx context.Context, req
 	// 	request.NodeType,
 	// )
 	// if err != nil {
-	// 	log.Fatalf("error: %v", err)
+	// 	log.Printf("error: %v", err)
 	// 	return &pb.SendMessageResponse{Message: "fail"}, err
 	// }
 

@@ -66,11 +66,11 @@ func (s *server) Subscribe(in *pb.Subscription, stream pb.BrokerService_Subscrib
 func main() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Printf("failed to listen: %v", err)
 	}
 	s := grpc.NewServer()
 	pb.RegisterBrokerServiceServer(s, &server{})
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		log.Printf("failed to serve: %v", err)
 	}
 }

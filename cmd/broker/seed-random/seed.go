@@ -170,7 +170,7 @@ func GraphToJSON(brokerServiceList []service.BrokerService) {
 	// JSON 형식으로 변환
 	jsonData, err := json.MarshalIndent(brokerNeighbors, "", "    ")
 	if err != nil {
-		log.Fatalf("Error occurred during marshaling. Error: %s", err.Error())
+		log.Printf("Error occurred during marshaling. Error: %s", err.Error())
 	}
 
 	// 목표 폴더 경로(wowsan/data/graph) 설정
@@ -178,20 +178,20 @@ func GraphToJSON(brokerServiceList []service.BrokerService) {
 	// 필요한 경우 폴더 생성
 	err = os.MkdirAll(folderPath, os.ModePerm)
 	if err != nil {
-		log.Fatalf("Failed to create directory: %s", err)
+		log.Printf("Failed to create directory: %s", err)
 	}
 
 	// 파일 저장
 	filePath := folderPath + "/graph.json"
 	file, err := os.Create(filePath)
 	if err != nil {
-		log.Fatalf("Error occurred during file creation. Error: %s", err.Error())
+		log.Printf("Error occurred during file creation. Error: %s", err.Error())
 	}
 	defer file.Close()
 
 	_, err = file.Write(jsonData)
 	if err != nil {
-		log.Fatalf("Error occurred during writing to file. Error: %s", err.Error())
+		log.Printf("Error occurred during writing to file. Error: %s", err.Error())
 	}
 
 	log.Println("Graph data has been successfully saved to graph.json")

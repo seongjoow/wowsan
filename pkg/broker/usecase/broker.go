@@ -497,7 +497,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					)
 
 					if err != nil {
-						log.Fatalf("error: %v", err)
+						log.Printf("error: %v", err)
 						continue
 					}
 				}
@@ -596,7 +596,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 						newRequestPerformanceInfo,
 					)
 					if err != nil {
-						log.Fatalf("error: %v", err)
+						log.Printf("error: %v", err)
 						continue
 					}
 				}

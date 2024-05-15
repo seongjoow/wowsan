@@ -24,7 +24,7 @@ func (sc *subscriberClient) RPCReceivePublication(ip, port, subject, operator, v
 	ipAddr := ip + ":" + string(port)
 	c, conn, ctx, cancel, err := rpcConnectTo(ipAddr)
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Printf("did not connect: %v\n", err)
 	}
 	defer conn.Close()
 	defer cancel()
@@ -36,7 +36,7 @@ func (sc *subscriberClient) RPCReceivePublication(ip, port, subject, operator, v
 		Value:    value,
 	})
 	if err != nil {
-		log.Fatalf("error: %v", err)
+		log.Printf("error: %v", err)
 		return &pb.ReceivePublicationResponse{}, err
 	}
 	return response, nil
@@ -46,7 +46,7 @@ func (sc *subscriberClient) RPCReceivePublication(ip, port, subject, operator, v
 func rpcConnectTo(ipAddr string) (pb.SubscriberServiceClient, *grpc.ClientConn, context.Context, context.CancelFunc, error) {
 	conn, err := grpc.Dial(ipAddr, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("did not connect: %v\n", err)
+		log.Printf("did not connect: %v\n", err)
 		return nil, nil, nil, nil, err
 	}
 

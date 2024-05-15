@@ -29,7 +29,7 @@ func (s *server) GetTestGO(ctx context.Context, reqeust *pb.TestRequest) (*pb.Te
 func initServer() {
 	lis, err := net.Listen("tcp", ":"+GO_SERVER_PORT)
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		log.Printf("failed to listen: %v", err)
 	}
 	fmt.Println("listen on 50051")
 

@@ -42,7 +42,7 @@ func main() {
 	// connect to the rpc server
 	client, conn, ctx, cancel, err := rpcConnectTo(addr)
 	if err != nil {
-		log.Fatalf("connect error: %v", err)
+		log.Printf("connect error: %v", err)
 	}
 
 	/*
@@ -61,7 +61,7 @@ func main() {
 		},
 	)
 	if err != nil {
-		log.Fatalf("grpc call error: %v", err)
+		log.Printf("grpc call error: %v", err)
 	}
 	log.Printf("Response: %s", r)
 }

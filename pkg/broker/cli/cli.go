@@ -91,7 +91,7 @@ func ExecutionLoop(service service.BrokerService) {
 		// 	)
 
 		// 	if err != nil {
-		// 		log.Fatalf("error: %v", err)
+		// 		log.Printf("error: %v", err)
 		// 	}
 		// 	fmt.Println(res.Message)
 

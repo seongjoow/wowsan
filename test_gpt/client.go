@@ -19,12 +19,12 @@ func subscribe(client pb.BrokerServiceClient, conditions map[string]string) {
 	defer cancel()
 	stream, err := client.Subscribe(ctx, &pb.Subscription{Conditions: conditions})
 	if err != nil {
-		log.Fatalf("subscribe error: %v", err)
+		log.Printf("subscribe error: %v", err)
 	}
 	for {
 		msg, err := stream.Recv()
 		if err != nil {
-			log.Fatalf("error receiving message: %v", err)
+			log.Printf("error receiving message: %v", err)
 		}
 		log.Printf("Received message: %s", msg.Content)
 	}
@@ -33,7 +33,7 @@ func subscribe(client pb.BrokerServiceClient, conditions map[string]string) {
 func main() {
 	conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithBlock())
 	if err != nil {
-		log.Fatalf("did not connect: %v", err)
+		log.Printf("did not connect: %v", err)
 	}
 	defer conn.Close()
 	client := pb.NewBrokerServiceClient(conn)

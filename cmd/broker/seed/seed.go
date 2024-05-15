@@ -27,14 +27,14 @@ var Brokers = []*model.Broker{}
 func initSeed(port string) *model.Broker {
 	lis, err := net.Listen("tcp", "localhost"+":"+port)
 	if err != nil {
-		log.Fatalf("failed to listen: %v\n", err)
+		log.Printf("failed to listen: %v\n", err)
 	}
 	s := grpc.NewServer()
 
 	id := "localhost" + ":" + port
 	l, err := logger.NewLogger(port)
 	if err != nil {
-		log.Fatalf("failed to create logger: %v\n", err)
+		log.Printf("failed to create logger: %v\n", err)
 	}
 	localBrokerModel := model.NewBroker(id, "localhost", port, l)
 	server := broker.NewBrokerRPCServer(localBrokerModel)

@@ -84,7 +84,7 @@ func NewBrokerService(
 
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			log.Printf("failed to serve: %v", err)
 		}
 	}()
 
