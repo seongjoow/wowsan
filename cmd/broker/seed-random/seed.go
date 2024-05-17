@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"os"
 	"time"
+	"wowsan/pkg/logger"
 	model "wowsan/pkg/model"
 
 	_grpcBrokerClient "wowsan/pkg/broker/grpc/client"
@@ -27,7 +28,7 @@ func brokerPortsGenerator(counts int) (ports []string) {
 func main() {
 	var isReady bool
 	var BrokerServiceList = []service.BrokerService{}
-	grpcBrokerClient := _grpcBrokerClient.NewBrokerClient()
+	var BrokerRPCList = make(map[string]_grpcBrokerClient.BrokerClient)
 
 	nodeCount := 10
 	seedBrokers := brokerPortsGenerator(nodeCount)
@@ -40,6 +41,15 @@ func main() {
 	logDirTimestamp := time.Now().Format("20060102_150405")
 
 	for index, port := range seedBrokers {
+		RPCErrorLogger, err := logger.NewLogger(logDirTimestamp, "./log/RPCErrorLogger/"+port)
+		if err != nil {
+			panic(err)
+		}
+
+		grpcBrokerClient := _grpcBrokerClient.NewBrokerClientWithLogger(RPCErrorLogger)
+
+		BrokerRPCList[port] = grpcBrokerClient
+
 		bService := service.NewBrokerService("localhost", port, logDirTimestamp)
 		if index == len(seedBrokers)-1 {
 			isReady = true
@@ -70,7 +80,8 @@ func main() {
 						if brokerToAdd.Ip == broker.Ip && brokerToAdd.Port == broker.Port {
 							continue
 						}
-						grpcBrokerClient.RPCAddBroker(
+
+						BrokerRPCList[broker.Port].RPCAddBroker(
 							brokerToAdd.Ip,
 							brokerToAdd.Port,
 							broker.Id,
@@ -98,7 +109,7 @@ func main() {
 						brokerToAdd = BrokerServiceList[randIndex].GetBroker()
 
 						if randIndex != i && !contains(BrokerServiceList[i].GetBroker().Brokers, brokerToAdd) {
-							_, err := grpcBrokerClient.RPCAddBroker(
+							_, err := BrokerRPCList[BrokerServiceList[i].GetBroker().Port].RPCAddBroker(
 								brokerToAdd.Ip,
 								brokerToAdd.Port,
 								BrokerServiceList[i].GetBroker().Id,
@@ -136,7 +147,7 @@ func main() {
 			return
 		}
 	}()
-	_cli.SeedCliLoop(grpcBrokerClient, BrokerServiceList)
+	_cli.SeedCliLoop(BrokerRPCList, BrokerServiceList)
 }
 
 func contains(brokers map[string]*model.Broker, broker *model.Broker) bool {

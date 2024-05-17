@@ -22,7 +22,7 @@ func findBroker(brokerServiceList []service.BrokerService, port string) *model.B
 	return nil
 }
 
-func SeedCliLoop(rpcClient _grpcBrokerClient.BrokerClient, brokerServiceList []service.BrokerService) {
+func SeedCliLoop(rpcClient map[string]_grpcBrokerClient.BrokerClient, brokerServiceList []service.BrokerService) {
 
 	defaultIP := "localhost"
 	scanner := bufio.NewScanner(os.Stdin)
@@ -58,7 +58,7 @@ func SeedCliLoop(rpcClient _grpcBrokerClient.BrokerClient, brokerServiceList []s
 			myId := defaultIP + ":" + myPort
 			myIp := defaultIP + ":" + myPort
 
-			response, err := rpcClient.RPCAddBroker(remoteIP, remotePort, myId, myIp, myPort)
+			response, err := rpcClient[myPort].RPCAddBroker(remoteIP, remotePort, myId, myIp, myPort)
 			if err != nil {
 				log.Printf("error: %v", err)
 			}

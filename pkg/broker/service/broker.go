@@ -65,7 +65,12 @@ func NewBrokerService(
 	id := ip + ":" + port
 	broker := model.NewBroker(id, ip, port)
 
-	brokerClient := _brokerClient.NewBrokerClient()
+	RPCErrorLogger, err := logger.NewLogger("RPCerror", "./log/RPCErrorLogger/"+baseDir)
+	if err != nil {
+		panic(err)
+	}
+
+	brokerClient := _brokerClient.NewBrokerClientWithLogger(RPCErrorLogger)
 	subscriberClient := _subscriberClient.NewSubscriberClient()
 
 	brokerUsecase := _brokerUsecase.NewBrokerUsecase(

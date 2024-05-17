@@ -22,6 +22,17 @@ import (
 // 	return logger
 // }
 
+// func NewLoggerConsole() *logrus.Logger {
+// 	logger := logrus.New()
+// 	logger.SetFormatter(&logrus.JSONFormatter{
+// 		TimestampFormat:   "2006-01-02 15:04:05",
+// 		DisableHTMLEscape: true,
+// 	})
+// 	logger.SetLevel(logrus.InfoLevel)
+// 	logger.SetOutput(os.Stdout)
+// 	return logger
+// }
+
 func NewLogger(prefix, logDir string) (*logrus.Logger, error) {
 	logFileName := fmt.Sprintf("%s/%s.json", logDir, prefix)
 

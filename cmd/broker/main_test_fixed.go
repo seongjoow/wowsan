@@ -21,6 +21,7 @@ func main() {
 	flag.Parse()
 
 	brokerService := service.NewBrokerService(ip, *port, *dirIndex)
+
 	brokerClient := client.NewBrokerClient()
 	http.PostForm("http://localhost:8080/init_broker", map[string][]string{"port": {*port}})
 
