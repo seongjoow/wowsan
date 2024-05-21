@@ -656,6 +656,7 @@ type bottleneckStatus struct {
 }
 
 func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, memory uint64, responseTime time.Duration) bool {
+	// TODO: 병목 기준을 어떻게 설정할 것인지 결정해야 함
 	// 메모리 사용량이 100000000이면서 response time이 증가하는 상태가 n초 이상 지속되면 병목으로 판단
 	var n time.Duration = 3
 	if memory >= 100000000 && responseTime > bottleneckStatus.preResponseTime {

@@ -9,8 +9,6 @@ import (
 	subscriber "wowsan/pkg/subscriber/service"
 )
 
-var subjectList = []string{"apple", "tesla", "microsoft", "amazon", "nvidia"}
-
 // getExpInterval 함수는 지수 분포를 사용하여 다음 호출까지의 대기 시간을 반환함
 func getExpInterval(lambda float64) time.Duration {
 	expRandom := rand.ExpFloat64() / lambda
@@ -18,7 +16,7 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda float64, brokerIp string, brokerPort string, publisherIp string, publisherPort string) {
+func RunPublisherSimulation(durationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
@@ -73,7 +71,7 @@ func RunPublisherSimulation(durationSeconds int, advLambda float64, pubLambda fl
 	}
 }
 
-func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp string, brokerPort string, subscriberIp string, subscriberPort string) {
+func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp, brokerPort, subscriberIp, subscriberPort string, subjectList []string) {
 	subscriberService := subscriber.NewSubscriberService(subscriberIp, subscriberPort)
 
 	start := time.Now()
@@ -81,7 +79,7 @@ func RunSubscriberSimulation(durationSeconds int, lambda float64, brokerIp strin
 
 	// Subscribe 시뮬레이션 루프
 	for time.Now().Before(end) {
-		subject, operator, value := SubPredicateGenerator()
+		subject, operator, value := SubPredicateGenerator(subjectList)
 		// strValue := fmt.Sprintf("%d", value) // value to string
 
 		interval := getExpInterval(lambda)

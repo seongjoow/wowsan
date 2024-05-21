@@ -16,8 +16,8 @@ func AdvPredicateGenerator(subjectList []string) (string, string, string, []stri
 	return subject, operator, value, selectedSubjectList
 }
 
-func SubPredicateGenerator() (string, string, string) {
-	subjectList := []string{"apple", "tesla", "microsoft", "amazon", "nvidia"}
+func SubPredicateGenerator(subjectList []string) (string, string, string) {
+	// subjectList := []string{"apple", "tesla", "microsoft", "amazon", "nvidia"}
 	valueList := []string{"45", "55", "65", "75", "85", "95"}
 
 	subject := subjectList[rand.Intn(len(subjectList))]

@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/http"
-	"os"
 
 	"time"
 
@@ -93,17 +91,17 @@ func NewBrokerService(
 		}
 	}()
 
-	go func() {
-		for {
-			b := brokerUsecase.GetBroker()
-			if time.Since(b.Close) > 30*time.Second {
-				// terminate the program
-				fmt.Println("Broker is closed")
-				http.PostForm("http://localhost:8080/done", map[string][]string{"port": {port}})
-				os.Exit(1)
-			}
-		}
-	}()
+	// go func() {
+	// 	for {
+	// 		b := brokerUsecase.GetBroker()
+	// 		if time.Since(b.Close) > 30*time.Second {
+	// 			// terminate the program
+	// 			fmt.Println("Broker is closed")
+	// 			http.PostForm("http://localhost:8080/done", map[string][]string{"port": {port}})
+	// 			// os.Exit(1)
+	// 		}
+	// 	}
+	// }()
 	// api call server init finished
 
 	go brokerUsecase.PerformanceTickLogger(1 * time.Second)
