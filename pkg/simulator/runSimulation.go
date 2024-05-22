@@ -16,11 +16,12 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(durationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string) {
+func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
-	end := start.Add(time.Duration(durationSeconds) * time.Second)
+	advEnd := start.Add(time.Duration(advDurationSeconds) * time.Second)
+	pubEnd := start.Add(time.Duration(pubDurationSeconds) * time.Second)
 
 	// subject := ""
 	// operator := ""
@@ -31,7 +32,7 @@ func RunPublisherSimulation(durationSeconds int, advLambda, pubLambda float64, b
 
 	// Advertise 시뮬레이션 루프
 	go func() {
-		for time.Now().Before(end) {
+		for time.Now().Before(advEnd) {
 			subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
 
 			interval := getExpInterval(advLambda)
@@ -48,7 +49,7 @@ func RunPublisherSimulation(durationSeconds int, advLambda, pubLambda float64, b
 	}()
 
 	// Publish 시뮬레이션 루프
-	for time.Now().Before(end) {
+	for time.Now().Before(pubEnd) {
 		// 채널에서 데이터 수신
 		selectedSubjectList, ok := <-subjectListChannel
 		if !ok {
