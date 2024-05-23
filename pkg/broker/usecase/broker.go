@@ -199,7 +199,7 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 
 func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
-	simulator.IncreaseMemoryUsage(100)
+	// simulator.IncreaseMemoryUsage(100)
 
 	// srt := uc.SRT
 	newRequestPerformanceInfo := advReq.PerformanceInfo
@@ -354,7 +354,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
-	simulator.IncreaseMemoryUsage(100)
+	// simulator.IncreaseMemoryUsage(100)
 
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
@@ -526,7 +526,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
-	simulator.IncreaseMemoryUsage(100)
+	// simulator.IncreaseMemoryUsage(100)
 
 	newRequestPerformanceInfo := pubReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
@@ -681,7 +681,7 @@ func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, mem
 
 func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 	broker := uc.broker
-	cpu, mem := utils.Utilization()
+	cpu, memory := utils.Utilization()
 	queueLength := len(broker.MessageQueue)
 	queueTime := broker.QueueTime
 	serviceTime := broker.ServiceTime
@@ -696,7 +696,7 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 	performanceInfo := &model.PerformanceInfo{
 		BrokerId:         broker.Id,
 		Cpu:              fmt.Sprintf("%f", cpu),
-		Memory:           fmt.Sprint(mem),
+		Memory:           fmt.Sprint(memory),
 		QueueLength:      fmt.Sprintf("%d", queueLength),
 		QueueTime:        fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
 		ServiceTime:      fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
