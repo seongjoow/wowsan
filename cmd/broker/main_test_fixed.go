@@ -44,12 +44,12 @@ func main() {
 		}
 		brokersToAdd = append(brokersToAdd, *brokerToAdd)
 
-		brokerToAdd = &model.Broker{
-			Id:   "6",
-			Ip:   "localhost",
-			Port: "50006",
-		}
-		brokersToAdd = append(brokersToAdd, *brokerToAdd)
+		// brokerToAdd = &model.Broker{
+		// 	Id:   "6",
+		// 	Ip:   "localhost",
+		// 	Port: "50006",
+		// }
+		// brokersToAdd = append(brokersToAdd, *brokerToAdd)
 
 	case "50003":
 		brokerToAdd := &model.Broker{
@@ -63,6 +63,13 @@ func main() {
 			Id:   "6",
 			Ip:   "localhost",
 			Port: "50006",
+		}
+		brokersToAdd = append(brokersToAdd, *brokerToAdd)
+
+		brokerToAdd = &model.Broker{
+			Id:   "7",
+			Ip:   "localhost",
+			Port: "50007",
 		}
 		brokersToAdd = append(brokersToAdd, *brokerToAdd)
 
@@ -81,13 +88,13 @@ func main() {
 		}
 		brokersToAdd = append(brokersToAdd, *brokerToAdd)
 
-	case "50006":
-		brokerToAdd := &model.Broker{
-			Id:   "7",
-			Ip:   "localhost",
-			Port: "50007",
-		}
-		brokersToAdd = append(brokersToAdd, *brokerToAdd)
+	// case "50006":
+	// brokerToAdd := &model.Broker{
+	// 	Id:   "7",
+	// 	Ip:   "localhost",
+	// 	Port: "50007",
+	// }
+	// brokersToAdd = append(brokersToAdd, *brokerToAdd)
 
 	case "50008":
 		brokerToAdd := &model.Broker{

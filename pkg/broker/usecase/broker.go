@@ -642,7 +642,7 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
 			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, responseTime),
+			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
 		}).Info("Performance Metrics")
 
 		// LogBrokerInfoToLogfile(broker)
@@ -651,15 +651,17 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 
 type bottleneckStatus struct {
 	start           time.Time
+	preQueueLength  int
 	preResponseTime time.Duration
 	state           bool
 }
 
-func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, memory uint64, responseTime time.Duration) bool {
+func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, memory uint64, queueLength int, responseTime time.Duration) bool {
 	// TODO: 병목 기준을 어떻게 설정할 것인지 결정해야 함
-	// 메모리 사용량이 100000000이면서 response time이 증가하는 상태가 n초 이상 지속되면 병목으로 판단
+	// 메모리 사용량이 100000000이면서
+	// queue length가 증가하고 response time이 증가하는 상태가 n초 이상 지속되면 병목으로 판단
 	var n time.Duration = 3
-	if memory >= 100000000 && responseTime > bottleneckStatus.preResponseTime {
+	if queueLength > bottleneckStatus.preQueueLength && responseTime > bottleneckStatus.preResponseTime {
 		if bottleneckStatus.start.IsZero() {
 			bottleneckStatus.start = time.Now()
 		} else {
@@ -672,6 +674,7 @@ func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, mem
 		bottleneckStatus.start = time.Time{}
 		bottleneckStatus.state = false
 	}
+	bottleneckStatus.preQueueLength = queueLength
 	bottleneckStatus.preResponseTime = responseTime
 	return bottleneckStatus.state
 }

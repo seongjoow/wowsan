@@ -9,8 +9,8 @@ import (
 
 func main() {
 	rand.Seed(time.Now().UnixNano())
-	advLambda := float64(1) / (60 * 5) // 단위 시간당 평균 호출 횟수 λ (예: λ = 1/3 이면 3초에 한 번 호출)
-	subLambda := float64(1) / (60 * 2)
+	advLambda := float64(1) / (60 * 3) // 단위 시간당 평균 호출 횟수 λ (예: λ = 1/3 이면 3초에 한 번 호출)
+	subLambda := float64(1) / (60 * 1)
 	pubLambda := float64(1) / 30
 	duration := 60 * 60    // 시뮬레이션 할 총 시간(초)
 	advDuration := 60 * 30 // Advertise 시뮬레이션 시간(초)
