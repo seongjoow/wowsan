@@ -21,8 +21,8 @@ func NewTable(headers []string, lengths []int) *Table {
 }
 
 func NewFromToTable() *Table {
-	headers := []string{"From", "To"}
-	lengths := []int{15, 15}
+	headers := []string{"From", "To", "Action", "Message"}
+	lengths := []int{15, 15, 15, 30}
 	return NewTable(headers, lengths)
 }
 
@@ -98,6 +98,11 @@ func (t *Table) PrintSeparatorLine() {
 
 func (t *Table) PrintRow(row []string) {
 	fmt.Printf(t.generateDataFormat(), t.formatRow(row)...)
+}
+
+func (t *Table) PrintRowFromTo(from string, to string, action string, message string) {
+	row := []string{from, to, action, message}
+	t.PrintRow(row)
 }
 
 func (t *Table) generateDataFormat() string {

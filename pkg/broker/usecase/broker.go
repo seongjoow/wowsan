@@ -307,9 +307,9 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		for _, neighbor := range uc.broker.Brokers {
 			// 온 방향으로는 전송하지 않음
 			if neighbor.Id == advReq.Id {
+				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Skip", "incoming direction")
 				continue
 			}
-			RoutingAdvViaPRTTable.PrintRow([]string{uc.broker.Id, neighbor.Id})
 			// 새로운 요청을 이웃에게 전송
 			_, err := uc.brokerClient.RPCSendAdvertisement(
 				neighbor.Ip,   //remote broker ip
@@ -329,8 +329,10 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 
 			if err != nil {
 				uc.hopLogger.Fatalf("error: %v", err)
+				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Error", err.Error())
 				continue
 			}
+			RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "SendAdv", "")
 		}
 		RoutingAdvViaPRTTable.PrintSeparatorLine()
 	}
@@ -470,15 +472,15 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 						RoutingSubViaPRTTable.PrintHeader()
 						RoutingSubViaPRTTable.PrintSeparatorLine()
 					}
-					RoutingSubViaPRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
-
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
 					if lastHop.Id == srtItem.Identifier.SenderId {
 						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
+						RoutingSubViaPRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
 						break
 					}
 					if subReq.Port == lastHop.Port {
+						RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
 						break
 					}
 					// 	for _, publisher := range uc.Publishers {
@@ -487,6 +489,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					// 		}
 					// 	}
 
+					// RoutingSubViaPRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
 					// 새로운 요청을 SRT의 last hop 브로커에게 전송
 					_, err := uc.brokerClient.RPCSendSubscription(
 						lastHop.Ip,   //remote broker ip
@@ -505,8 +508,10 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 					if err != nil {
 						log.Printf("error: %v", err)
+						RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
 						continue
 					}
+					RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
 				}
 				RoutingSubViaPRTTable.PrintSeparatorLine()
 			}
@@ -571,12 +576,11 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 					RoutingPubViaPRT.PrintHeader()
 					RoutingPubViaPRT.PrintSeparatorLine()
 				}
-				RoutingPubViaPRT.PrintRow([]string{uc.broker.Id, lastHop.Id})
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
 				// if lastHop.NodeType == constants.SUBSCRIBER {
 				if lastHop.Id == item.Identifier.SenderId {
 					fmt.Printf("Publication reached subscriber %s\n", lastHop.Id)
-
+					RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Receive", "")
 					// Notify subscriber
 					uc.subscriberClient.RPCReceivePublication(
 						lastHop.Ip,
@@ -609,8 +613,10 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 					)
 					if err != nil {
 						log.Printf("error: %v", err)
+						RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendPublication", err.Error())
 						continue
 					}
+					RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendPub", "")
 				}
 
 			}
