@@ -55,7 +55,7 @@ func NewBroker(id, ip, port string) *Broker {
 // print prt table
 func (b *Broker) PrintPRT() {
 	// Define headers and lengths
-	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "[]LastHop(id, nodeType)"}
+	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "[]LastHop(port, nodeType)"}
 	columnLengths := []int{15, 10, 10, 15, 15, 35}
 	// Print the table
 	table := utils.NewTable(columnHeaders, columnLengths)
@@ -66,13 +66,7 @@ func (b *Broker) PrintPRT() {
 			if i > 0 {
 				lastHop += ", "
 			}
-			var hopPort string
-			if len(hop.Ip) > 6 {
-				hopPort = hop.Ip[len(hop.Ip)-6:]
-			} else {
-				hopPort = hop.Ip
-			}
-			lastHop += fmt.Sprintf("%s(%s)", hopPort, hop.NodeType)
+			lastHop += fmt.Sprintf("%s(%s)", hop.Port, hop.NodeType)
 		}
 		row := []string{
 			item.Subscription.Subject,
@@ -90,7 +84,7 @@ func (b *Broker) PrintPRT() {
 // print srt table
 func (b *Broker) PrintSRT() {
 	// Define headers and lengths
-	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(id, nodeType)"}
+	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(port, nodeType)"}
 	columnLengths := []int{15, 10, 10, 15, 15, 10, 35}
 	// Print the table
 	table := utils.NewTable(columnHeaders, columnLengths)
@@ -101,13 +95,7 @@ func (b *Broker) PrintSRT() {
 			if i > 0 {
 				lastHop += ", "
 			}
-			var hopPort string
-			if len(hop.Ip) > 6 {
-				hopPort = hop.Ip[len(hop.Ip)-6:]
-			} else {
-				hopPort = hop.Ip
-			}
-			lastHop += fmt.Sprintf("(%s,%s)", hopPort, hop.NodeType)
+			lastHop += fmt.Sprintf("(%s,%s)", hop.Port, hop.NodeType)
 		}
 		row := []string{
 			item.Advertisement.Subject,
