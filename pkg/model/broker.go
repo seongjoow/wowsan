@@ -1,8 +1,10 @@
 package model
 
 import (
+	"fmt"
 	"sync"
 	"time"
+	"wowsan/pkg/broker/utils"
 )
 
 type Broker struct {
@@ -48,4 +50,111 @@ func NewBroker(id, ip, port string) *Broker {
 		InterArrivalTime: 0,
 		Close:            time.Now(),
 	}
+}
+
+// print prt table
+func (b *Broker) PrintPRT() {
+	// Define headers and lengths
+	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "[]LastHop(id, nodeType)"}
+	columnLengths := []int{15, 10, 10, 15, 15, 35}
+	// Print the table
+	table := utils.NewTable(columnHeaders, columnLengths)
+	table.SetTitle("PRT")
+	for _, item := range b.PRT {
+		var lastHop string
+		for i, hop := range item.LastHop {
+			if i > 0 {
+				lastHop += ", "
+			}
+			var hopPort string
+			if len(hop.Ip) > 6 {
+				hopPort = hop.Ip[len(hop.Ip)-6:]
+			} else {
+				hopPort = hop.Ip
+			}
+			lastHop += fmt.Sprintf("%s(%s)", hopPort, hop.NodeType)
+		}
+		row := []string{
+			item.Subscription.Subject,
+			item.Subscription.Operator,
+			item.Subscription.Value,
+			item.Identifier.MessageId,
+			item.Identifier.SenderId,
+			lastHop,
+		}
+		table.AddRow(row)
+	}
+	table.PrintTable()
+}
+
+// print srt table
+func (b *Broker) PrintSRT() {
+	// Define headers and lengths
+	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(id, nodeType)"}
+	columnLengths := []int{15, 10, 10, 15, 15, 10, 35}
+	// Print the table
+	table := utils.NewTable(columnHeaders, columnLengths)
+	table.SetTitle("SRT")
+	for _, item := range b.SRT {
+		var lastHop string
+		for i, hop := range item.LastHop {
+			if i > 0 {
+				lastHop += ", "
+			}
+			var hopPort string
+			if len(hop.Ip) > 6 {
+				hopPort = hop.Ip[len(hop.Ip)-6:]
+			} else {
+				hopPort = hop.Ip
+			}
+			lastHop += fmt.Sprintf("(%s,%s)", hopPort, hop.NodeType)
+		}
+		row := []string{
+			item.Advertisement.Subject,
+			item.Advertisement.Operator,
+			item.Advertisement.Value,
+			item.Identifier.MessageId,
+			item.Identifier.SenderId,
+			fmt.Sprintf("%d", item.HopCount),
+			lastHop,
+		}
+		table.AddRow(row)
+	}
+	table.PrintTable()
+}
+
+func (b *Broker) PrintPublisher() {
+	// Define headers and lengths
+	columnHeaders := []string{"Id", "Ip", "Port"}
+	columnLengths := []int{15, 15, 15}
+	// Print the table
+	table := utils.NewTable(columnHeaders, columnLengths)
+	table.SetTitle("Publisher")
+	for _, publisher := range b.Publishers {
+		row := []string{
+			publisher.Id,
+			publisher.Ip,
+			publisher.Port,
+		}
+		table.AddRow(row)
+	}
+	table.PrintTable()
+}
+
+func (b *Broker) PrintSubscriber() {
+	// Define headers and lengths
+	columnHeaders := []string{"Id", "Ip", "Port"}
+	columnLengths := []int{15, 15, 15}
+	// Print the table
+	table := utils.NewTable(columnHeaders, columnLengths)
+	table.SetTitle("Subscriber")
+	for _, subscriber := range b.Subscribers {
+		row := []string{
+			subscriber.Id,
+			subscriber.Ip,
+			subscriber.Port,
+		}
+		table.AddRow(row)
+	}
+	table.PrintTable()
 }

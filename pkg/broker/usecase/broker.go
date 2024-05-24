@@ -256,9 +256,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			isExist = true
 
 			fmt.Println("============Updated LastHop in SRT============")
-			for _, item := range uc.broker.SRT {
-				fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
-			}
+			uc.broker.PrintSRT()
 		}
 	}
 
@@ -272,9 +270,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 		fmt.Println("============Added New Adv to SRT============")
-		for _, item := range uc.broker.SRT {
-			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
-		}
+		uc.broker.PrintSRT()
 	}
 	fmt.Println("Len SRT: ", len(uc.broker.SRT))
 
@@ -300,15 +296,20 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			fmt.Printf("%s\n", neighbor.Id)
 		}
 
+		RoutingAdvViaPRTTable := utils.NewFromToTable()
+		RoutingAdvViaPRTTable.SetTitle("Routing Adv via PRT")
+		if len(uc.broker.Brokers) > 0 {
+			RoutingAdvViaPRTTable.PrintTableTitle()
+			RoutingAdvViaPRTTable.PrintSeparatorLine()
+			RoutingAdvViaPRTTable.PrintHeader()
+			RoutingAdvViaPRTTable.PrintSeparatorLine()
+		}
 		for _, neighbor := range uc.broker.Brokers {
 			// 온 방향으로는 전송하지 않음
 			if neighbor.Id == advReq.Id {
 				continue
 			}
-			fmt.Println("--Sending Adv to Neighbor--")
-			fmt.Println("From: ", uc.broker.Id)
-			fmt.Println("To:   ", neighbor.Id)
-			fmt.Println("-----------------------")
+			RoutingAdvViaPRTTable.PrintRow([]string{uc.broker.Id, neighbor.Id})
 			// 새로운 요청을 이웃에게 전송
 			_, err := uc.brokerClient.RPCSendAdvertisement(
 				neighbor.Ip,   //remote broker ip
@@ -331,6 +332,7 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 				continue
 			}
 		}
+		RoutingAdvViaPRTTable.PrintSeparatorLine()
 	}
 
 	return nil
@@ -459,11 +461,16 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					fmt.Printf("%s\n", lastHop.Id)
 				}
 
-				for _, lastHop := range srtItem.LastHop {
-					fmt.Println("--Routing Sub via SRT--")
-					fmt.Println("From: ", uc.broker.Id)
-					fmt.Println("To:   ", lastHop.Id)
-					fmt.Println("-----------------------")
+				RoutingSubViaPRTTable := utils.NewFromToTable()
+				RoutingSubViaPRTTable.SetTitle("Routing Sub via PRT")
+				for index, lastHop := range srtItem.LastHop {
+					if index == 0 {
+						RoutingSubViaPRTTable.PrintTableTitle()
+						RoutingSubViaPRTTable.PrintSeparatorLine()
+						RoutingSubViaPRTTable.PrintHeader()
+						RoutingSubViaPRTTable.PrintSeparatorLine()
+					}
+					RoutingSubViaPRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
 
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
@@ -501,6 +508,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 						continue
 					}
 				}
+				RoutingSubViaPRTTable.PrintSeparatorLine()
 			}
 		}
 	}
@@ -554,12 +562,16 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 				fmt.Printf("%s\n", lastHop.Id)
 			}
 
-			for _, lastHop := range item.LastHop {
-				fmt.Println("--Routing Pub via PRT--")
-				fmt.Println("From: ", uc.broker.Id)
-				fmt.Println("To:   ", lastHop.Id)
-				fmt.Println("-----------------------")
-
+			RoutingPubViaPRT := utils.NewFromToTable()
+			RoutingPubViaPRT.SetTitle("Routing Pub via PRT")
+			for index, lastHop := range item.LastHop {
+				if index == 0 {
+					RoutingPubViaPRT.PrintTableTitle()
+					RoutingPubViaPRT.PrintSeparatorLine()
+					RoutingPubViaPRT.PrintHeader()
+					RoutingPubViaPRT.PrintSeparatorLine()
+				}
+				RoutingPubViaPRT.PrintRow([]string{uc.broker.Id, lastHop.Id})
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
 				// if lastHop.NodeType == constants.SUBSCRIBER {
 				if lastHop.Id == item.Identifier.SenderId {

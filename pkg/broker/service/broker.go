@@ -127,27 +127,40 @@ func (b *brokerService) AddBroker(remoteIp, remotePort string) {
 
 func (b *brokerService) Srt() {
 	broker := b.brokerUsercase.GetBroker()
-	fmt.Println("-----------[SRT]-----------")
-	for _, item := range broker.SRT {
-		fmt.Printf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-		for i := 0; i < len(item.LastHop); i++ {
-			fmt.Printf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
-		}
-		fmt.Println("----------------------------")
-		// fmt.Printf("SRT: %s %s %d\n", item.LastHop[index].ID, item.LastHop[index].NodeType, item.HopCount)
-	}
+	broker.PrintSRT()
+	// // Define headers and lengths
+	// columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "[]LastHop"}
+	// columnLengths := []int{15, 10, 10, 15, 10, 25}
+	// // Print the table
+	// table := utils.NewTable(columnHeaders, columnLengths)
+	// table.SetTitle("SRT")
+	// for _, item := range broker.SRT {
+	// 	var lastHop string
+	// 	for i, hop := range item.LastHop {
+	// 		if i > 0 {
+	// 			lastHop += ", "
+	// 		}
+	// 		lastHop += fmt.Sprintf("%s(%s)", hop.Id, hop.NodeType)
+	// 	}
+	// 	row := []string{
+	// 		item.Advertisement.Subject,
+	// 		item.Advertisement.Operator,
+	// 		item.Advertisement.Value,
+	// 		item.Identifier.MessageId,
+	// 		item.Identifier.SenderId,
+	// 		lastHop,
+	// 	}
+	// 	table.AddRow(row)
+	// }
+
+	// // Print the table
+	// table.PrintTable()
+
 }
 
 func (b *brokerService) Prt() {
 	broker := b.brokerUsercase.GetBroker()
-	fmt.Println("-----------[PRT]-----------")
-	for _, item := range broker.PRT {
-		fmt.Printf("Sub: %s %s %s (%s) | %s\n", item.Subscription.Subject, item.Subscription.Operator, item.Subscription.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-		for i := 0; i < len(item.LastHop); i++ {
-			fmt.Printf("%s | %s\n", item.LastHop[i].Id, item.LastHop[i].NodeType)
-		}
-		fmt.Println("----------------------------")
-	}
+	broker.PrintPRT()
 }
 
 func (b *brokerService) Broker() {
@@ -159,16 +172,48 @@ func (b *brokerService) Broker() {
 
 func (b *brokerService) Publisher() {
 	broker := b.brokerUsercase.GetBroker()
-	for _, publisher := range broker.Publishers {
-		fmt.Println(publisher.Id, publisher.Ip, publisher.Port)
-	}
+	broker.PrintPublisher()
+	// // for _, publisher := range broker.Publishers {
+	// // 	fmt.Println(publisher.Id, publisher.Ip, publisher.Port)
+	// // }
+	// fmt.Println("[Publisher]")
+	// // Define headers and lengths
+	// columnHeaders := []string{"Id", "Ip", "Port"}
+	// columnLengths := []int{15, 15, 15}
+	// // Print the table
+	// table := utils.NewTable(columnHeaders, columnLengths)
+	// for _, publisher := range broker.Publishers {
+	// 	row := []string{
+	// 		publisher.Id,
+	// 		publisher.Ip,
+	// 		publisher.Port,
+	// 	}
+	// 	table.AddRow(row)
+	// }
+	// table.PrintTable()
 }
 
 func (b *brokerService) Subscriber() {
 	broker := b.brokerUsercase.GetBroker()
-	for _, subscriber := range broker.Subscribers {
-		fmt.Println(subscriber.Id, subscriber.Ip, subscriber.Port)
-	}
+	broker.PrintSubscriber()
+	// // for _, subscriber := range broker.Subscribers {
+	// // 	fmt.Println(subscriber.Id, subscriber.Ip, subscriber.Port)
+	// // }
+	// fmt.Println("[Subscriber]")
+	// // Define headers and lengths
+	// columnHeaders := []string{"Id", "Ip", "Port"}
+	// columnLengths := []int{15, 15, 15}
+	// // Print the table
+	// table := utils.NewTable(columnHeaders, columnLengths)
+	// for _, subscriber := range broker.Subscribers {
+	// 	row := []string{
+	// 		subscriber.Id,
+	// 		subscriber.Ip,
+	// 		subscriber.Port,
+	// 	}
+	// 	table.AddRow(row)
+	// }
+	// table.PrintTable()
 }
 
 func (b *brokerService) GetBroker() *model.Broker {
