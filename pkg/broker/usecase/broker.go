@@ -197,6 +197,19 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 // 	uc.AdvertisementQueue <- req
 // }
 
+/*
+SRT Handling:
+If the advertisement message is not in the SRT table, the advertisement message is added to the SRT table.
+If not, check the hop count of the ad message in the SRT table,
+1. if the request hop count is shorter, update the hop count and last hop of the ad message in the SRT table.
+2. if the request hop count is the same, add the last hop of the request to the last hop of the ad message in the SRT table.
+3. if the request hop count is longer, do nothing.
+
+Brocast Handling:
+If the advertisement message is new or the hop count is shorter,
+broadcast the advertisement message to neighboring brokers.
+If the advertisement message is not new and the hop count is the same, do nothing.
+*/
 func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
@@ -356,6 +369,16 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 // 	uc.SubscriptionQueue <- req
 // }
 
+/*
+PRT Handling:
+If the subscription message is not in the PRT table,
+the subscription message is added to the PRT table.
+
+Borcast Handling:
+If the subscription message matches the advertisement message in the SRT table,
+the subscription message is sent to the last hop of the advertisement message.
+Then the last hop will do the same thing until it reaches the publisher.
+*/
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
@@ -463,24 +486,24 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					fmt.Printf("%s\n", lastHop.Id)
 				}
 
-				RoutingSubViaPRTTable := utils.NewFromToTable()
-				RoutingSubViaPRTTable.SetTitle("Routing Sub via PRT")
+				RoutingSubViaSRTTable := utils.NewFromToTable()
+				RoutingSubViaSRTTable.SetTitle("Routing Sub via SRT")
 				for index, lastHop := range srtItem.LastHop {
 					if index == 0 {
-						RoutingSubViaPRTTable.PrintTableTitle()
-						RoutingSubViaPRTTable.PrintSeparatorLine()
-						RoutingSubViaPRTTable.PrintHeader()
-						RoutingSubViaPRTTable.PrintSeparatorLine()
+						RoutingSubViaSRTTable.PrintTableTitle()
+						RoutingSubViaSRTTable.PrintSeparatorLine()
+						RoutingSubViaSRTTable.PrintHeader()
+						RoutingSubViaSRTTable.PrintSeparatorLine()
 					}
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
 					if lastHop.Id == srtItem.Identifier.SenderId {
 						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
-						RoutingSubViaPRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
+						RoutingSubViaSRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
 						break
 					}
 					if subReq.Port == lastHop.Port {
-						RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
+						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
 						break
 					}
 					// 	for _, publisher := range uc.Publishers {
@@ -489,7 +512,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					// 		}
 					// 	}
 
-					// RoutingSubViaPRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
+					// RoutingSubViaSRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
 					// 새로운 요청을 SRT의 last hop 브로커에게 전송
 					_, err := uc.brokerClient.RPCSendSubscription(
 						lastHop.Ip,   //remote broker ip
@@ -508,12 +531,12 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 					if err != nil {
 						log.Printf("error: %v", err)
-						RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
+						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
 						continue
 					}
-					RoutingSubViaPRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
+					RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
 				}
-				RoutingSubViaPRTTable.PrintSeparatorLine()
+				RoutingSubViaSRTTable.PrintSeparatorLine()
 			}
 		}
 	}
@@ -537,6 +560,11 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 // 	uc.PublicationQueue <- req
 // }
 
+/*
+If the publication message matches the subscription message in the PRT table,
+the publication message is sent to the last hop of the subscription message.
+Then the last hop will do the same thing until it reaches the subscriber.
+*/
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
