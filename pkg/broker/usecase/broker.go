@@ -226,8 +226,8 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	isShorter := false
 
 	// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
-	// 건너온 hop이 더 짧으면 last hop을 추가하고
-	// 건너온 hop이 같으면 기존 last hop을 대체함.
+	// 건너온 hop이 같으면 last hop에 주소를 추가하고
+	// 건너온 hop이 더 짧으면 기존 last hop의 주소를 대체함.
 	for index, item := range uc.broker.SRT {
 		fmt.Printf("srt: %s %s %s %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.HopCount)
 		fmt.Printf("reqSrtItem: %s %s %s %d\n", reqSrtItem.Advertisement.Subject, reqSrtItem.Advertisement.Operator, reqSrtItem.Advertisement.Value, reqSrtItem.HopCount)
@@ -544,7 +544,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 			pubReq.MessageId = item.Identifier.MessageId
 		}
 
-		if item.Subscription.Subject == pubReq.Subject {
+		if item.Subscription.Subject == pubReq.Subject { // TODO: operator, value도 비교해야 함
 			// 해당하는 subscription을 보낸 subscriber에게 도달할 때까지 hop-by-hop으로 전달
 			// (PRT의 last hop을 따라가면서 전달)
 
