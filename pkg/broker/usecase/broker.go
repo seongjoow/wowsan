@@ -181,31 +181,15 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 
 }
 
-// go routine 1
-// func (uc *brokerUsecase) DoAdvertisementQueue() {
-// 	for {
-// 		select {
-// 		case reqSrtItem := <-uc.AdvertisementQueue:
-// 			uc.SendAdvertisement(
-// 				reqSrtItem,
-// 			)
-// 		}
-// 	}
-// }
-
-// func (uc *brokerUsecase) PushAdvertisementToQueue(req *AdvertisementRequest) {
-// 	uc.AdvertisementQueue <- req
-// }
-
 /*
 SRT Handling:
-If the advertisement message is not in the SRT table, the advertisement message is added to the SRT table.
-If not, check the hop count of the ad message in the SRT table,
-1. if the request hop count is shorter, update the hop count and last hop of the ad message in the SRT table.
-2. if the request hop count is the same, add the last hop of the request to the last hop of the ad message in the SRT table.
+If the advertisement(adv) message is not in the SRT table, the advertisement message is added to the SRT table.
+If not, check the hop count of the advertisement message in the SRT table,
+1. if the request hop count is shorter, update the hop count and last hop of the advertisement message in the SRT table.
+2. if the request hop count is the same, add the last hop of the request to the last hop of the advertisement message in the SRT table.
 3. if the request hop count is longer, do nothing.
 
-Brocast Handling:
+Broadcast Handling:
 If the advertisement message is new or the hop count is shorter,
 broadcast the advertisement message to neighboring brokers.
 If the advertisement message is not new and the hop count is the same, do nothing.
@@ -352,28 +336,17 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	return nil
 }
 
-// go routine 2
-// func (uc *brokerUsecase) DoSubscriptionQueue() {
-// 	for {
-// 		select {
-// 		case reqPrtItem := <-uc.SubscriptionQueue:
-// 			uc.SendSubscription(
-// 				reqPrtItem,
-// 			)
-// 		}
-// 	}
-// }
-
-// func (uc *brokerUsecase) PushSubscriptionToQueue(req *SubscriptionRequest) {
-// 	uc.SubscriptionQueue <- req
-// }
-
 /*
 PRT Handling:
+At the first edge broker,
+If there is advertisement message in SRT that contains the subscription message
+and the subscription(sub) message is not in the PRT table,
+the subscription message is added to the PRT table.
+At the other brokers,
 If the subscription message is not in the PRT table,
 the subscription message is added to the PRT table.
 
-Borcast Handling:
+Broadcast Handling:
 If the subscription message matches the advertisement message in the SRT table,
 the subscription message is sent to the last hop of the advertisement message.
 Then the last hop will do the same thing until it reaches the publisher.
@@ -549,22 +522,6 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 	return nil
 }
-
-// go routine 3
-// func (uc *brokerUsecase) DoPublicationQueue() {
-// 	for {
-// 		select {
-// 		case reqItem := <-uc.PublicationQueue:
-// 			uc.SendPublication(
-// 				reqItem,
-// 			)
-// 		}
-// 	}
-// }
-
-// func (uc *brokerUsecase) PushPublicationToQueue(req *PublicationRequest) {
-// 	uc.PublicationQueue <- req
-// }
 
 /*
 If the publication message matches the subscription message in the PRT table,
