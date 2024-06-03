@@ -241,35 +241,34 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
 	// 건너온 hop이 더 짧으면 last hop을 추가하고
 	// 건너온 hop이 같으면 기존 last hop을 대체함.
-	for index, item := range uc.broker.SRT {
+	for index, item := range uc.broker.SRT.Items {
+
 		fmt.Printf("srt: %s %s %s %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.HopCount)
 		fmt.Printf("reqSrtItem: %s %s %s %d\n", reqSrtItem.Advertisement.Subject, reqSrtItem.Advertisement.Operator, reqSrtItem.Advertisement.Value, reqSrtItem.HopCount)
 		if model.MatchingEngineSRT(item, reqSrtItem) {
-			if item.HopCount >= reqSrtItem.HopCount {
-				if item.HopCount == reqSrtItem.HopCount {
-					uc.broker.SRTmutex.Lock()
-					uc.broker.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
-					uc.broker.SRTmutex.Unlock()
-					uc.brokerInfoLogger.GetBrokerInfo(
-						uc.broker,
-					)
-				}
-				if item.HopCount > reqSrtItem.HopCount {
-					// reqSrtItem.HopCount += 1
-					uc.broker.SRTmutex.Lock()
-					uc.broker.SRT[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
-					uc.broker.SRTmutex.Unlock()
-					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
+			if item.HopCount == reqSrtItem.HopCount {
+				uc.broker.SRTmutex.Lock()
+				uc.broker.SRT.Items[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
+				uc.broker.SRTmutex.Unlock()
+				uc.brokerInfoLogger.GetBrokerInfo(
+					uc.broker,
+				)
+			}
+			if item.HopCount > reqSrtItem.HopCount {
+				// reqSrtItem.HopCount += 1
+				uc.broker.SRTmutex.Lock()
+				uc.broker.SRT.Items[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
+				uc.broker.SRTmutex.Unlock()
+				uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
-					isShorter = true
-				}
+				isShorter = true
 			}
 			fmt.Println("Same adv already exists.")
 
 			isExist = true
 
 			fmt.Println("============Updated LastHop in SRT============")
-			uc.broker.PrintSRT()
+			uc.broker.SRT.PrintSRT()
 		}
 	}
 
@@ -278,14 +277,14 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		// reqSrtItem.HopCount += 1
 		// srt = append(srt, reqSrtItem)
 		uc.broker.SRTmutex.Lock()
-		uc.broker.SRT = append(uc.broker.SRT, reqSrtItem)
+		uc.broker.SRT.AddItem(reqSrtItem)
 		uc.broker.SRTmutex.Unlock()
 		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 		fmt.Println("============Added New Adv to SRT============")
-		uc.broker.PrintSRT()
+		uc.broker.SRT.PrintSRT()
 	}
-	fmt.Println("Len SRT: ", len(uc.broker.SRT))
+	fmt.Println("Len SRT: ", len(uc.broker.SRT.Items))
 
 	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
 	if isExist == false || isShorter == true {
@@ -385,6 +384,13 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+	if len(newRequestPerformanceInfo) > 7 {
+		fmt.Println("PerformanceInfo Infinite loop 발생")
+		for _, info := range newRequestPerformanceInfo {
+			fmt.Println("Broker ID", info.BrokerId)
+			fmt.Println("Broker QueueLength", info.QueueLength)
+		}
+	}
 
 	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
@@ -403,7 +409,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 		subReq.SenderId,
 	)
 
-	for _, srtItem := range uc.broker.SRT {
+	for _, srtItem := range uc.broker.SRT.Items {
 		isExist := false
 
 		// advertisement의 subject와 operator가 subscription의 subject와 operator와 일치하는 경우:
@@ -423,7 +429,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 				// 새로운 subscription이 아닌 경우 (같은 내용의 subscription이 이미 존재하는 경우):
 				// PRT의 해당 item에 last hop 슬라이스에 없으면 추가, 있으면 추가하지 않음.
-				for index, prtItem := range uc.broker.PRT {
+				for index, prtItem := range uc.broker.PRT.Items {
 					if prtItem.Identifier.MessageId == reqPrtItem.Identifier.MessageId {
 						// PRT의 last hop 슬라이스에 주소가 이미 존재하는 경우:
 						// last hop 슬라이스 업데이트하지 않음
@@ -440,7 +446,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 						// last hop 슬라이스 업데이트함
 						if !isSameLastHop {
 							uc.broker.PRTmutex.Lock()
-							uc.broker.PRT[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
+							uc.broker.PRT.Items[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
 							uc.broker.PRTmutex.Unlock()
 							uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
@@ -454,7 +460,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 				// PRT에 추가
 				if !isExist {
 					uc.broker.PRTmutex.Lock()
-					uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
+					uc.broker.PRT.AddItem(reqPrtItem)
 					uc.broker.PRTmutex.Unlock()
 					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 				}
@@ -577,7 +583,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 		"PerformanceInfo": newRequestPerformanceInfo,
 	}).Infof("Publication(%s %s %s) %s", pubReq.Subject, pubReq.Operator, pubReq.Value, pubReq.MessageId)
 
-	for _, item := range uc.broker.PRT {
+	for _, item := range uc.broker.PRT.Items {
 		// subscription의 subject와 publication의 subject가 같은 경우:
 		// 해당 subscription의 last hop으로 publication 전달함.
 

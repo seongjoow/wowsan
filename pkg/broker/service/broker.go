@@ -24,6 +24,8 @@ type BrokerService interface {
 	AddBroker(remoteIp, remotePort string)
 	Srt()
 	Prt()
+	PrtWithSubject(subject string)
+	SrtWithSubject(subject string)
 	Broker()
 	Publisher()
 	Subscriber()
@@ -127,7 +129,7 @@ func (b *brokerService) AddBroker(remoteIp, remotePort string) {
 
 func (b *brokerService) Srt() {
 	broker := b.brokerUsercase.GetBroker()
-	broker.PrintSRT()
+	broker.SRT.PrintSRT()
 	// // Define headers and lengths
 	// columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "[]LastHop"}
 	// columnLengths := []int{15, 10, 10, 15, 10, 25}
@@ -158,9 +160,19 @@ func (b *brokerService) Srt() {
 
 }
 
+func (b *brokerService) SrtWithSubject(subject string) {
+	broker := b.brokerUsercase.GetBroker()
+	broker.SRT.PrintSRTWhereSubject(subject)
+}
+
 func (b *brokerService) Prt() {
 	broker := b.brokerUsercase.GetBroker()
-	broker.PrintPRT()
+	broker.PRT.PrintPRT()
+}
+
+func (b *brokerService) PrtWithSubject(subject string) {
+	broker := b.brokerUsercase.GetBroker()
+	broker.PRT.PrintPRTWhereSubject(subject)
 }
 
 func (b *brokerService) Broker() {
