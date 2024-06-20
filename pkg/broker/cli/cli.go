@@ -56,10 +56,26 @@ func ExecutionLoop(service service.BrokerService) {
 			service.Subscriber()
 
 		case "srt":
-			service.Srt()
+			// if have subject
+			switch len(args) {
+			case 1:
+				service.Srt()
+			case 2:
+				service.SrtWithSubject(args[1])
+			default:
+				fmt.Println("Usage: srt <subject>")
+			}
 
 		case "prt":
-			service.Prt()
+			// if have subject
+			switch len(args) {
+			case 1:
+				service.Prt()
+			case 2:
+				service.PrtWithSubject(args[1])
+			default:
+				fmt.Println("Usage: prt <subject>")
+			}
 
 		// case "sendAdv":
 		// 	if len(args) != 6 {

@@ -10,7 +10,7 @@ import (
 	"wowsan/pkg/broker/utils"
 	"wowsan/pkg/logger"
 	model "wowsan/pkg/model"
-	"wowsan/pkg/simulator"
+	// "wowsan/pkg/simulator"
 	subscriberTransport "wowsan/pkg/subscriber/grpc/client"
 
 	pb "wowsan/pkg/proto/broker"
@@ -87,7 +87,13 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	broker := uc.broker
 	for {
 		message := <-broker.MessageQueue
-
+		message.EnserviceTime = time.Now()
+		// time.Sleep(1 * time.Second)
+		if broker.Port == "50003" {
+			time.Sleep(1 * time.Millisecond)
+		} else {
+			time.Sleep(1 * time.Second)
+		}
 		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
 		uc.broker.Close = time.Now()
 
@@ -103,69 +109,40 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		switch message.MessageType {
 		case constants.ADVERTISEMENT:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(2.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendAdvertisement(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
-
 			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.SUBSCRIPTION:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendSubscription(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
 			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
+
 		case constants.PUBLICATION:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendPublication(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
 			// log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
 		}
+		serviceTime := time.Since(message.EnserviceTime)
+		totalServiceTime += serviceTime
+		avgServiceTime := totalServiceTime / time.Duration(messageCount)
+		uc.broker.ServiceTime = avgServiceTime
 	}
 }
 
 func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
-	var totalInterArrivalTime time.Duration
-	var messageCount int64
+	uc.broker.SRTmutex.Lock()
+	defer uc.broker.SRTmutex.Unlock()
 
 	// 큐 대기 시간 측정 시작
 	msgReq.EnqueueTime = time.Now()
 
 	uc.broker.MessageQueue <- msgReq
-	messageCount++
+	uc.broker.MessageCount++
 
 	if uc.broker.LastArrivalTime.IsZero() {
 		uc.broker.LastArrivalTime = msgReq.EnqueueTime
@@ -173,30 +150,28 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 		uc.broker.InterArrivalTime = msgReq.EnqueueTime.Sub(uc.broker.LastArrivalTime)
 		uc.broker.LastArrivalTime = msgReq.EnqueueTime
 
-		totalInterArrivalTime += uc.broker.InterArrivalTime
-		avgInterArrivalTime := totalInterArrivalTime / time.Duration(messageCount)
-		uc.broker.InterArrivalTime = avgInterArrivalTime
+		uc.broker.TotalInterArrivalTime += uc.broker.InterArrivalTime
+
+		avgInterArrivalTime := uc.broker.TotalInterArrivalTime / time.Duration(uc.broker.MessageCount)
+		uc.broker.AverageInterArrivalTime = avgInterArrivalTime
 		// log.Printf("Cumulative Average Inter-arrival Time: %v\n", avgInterArrivalTime)
 	}
 
 }
 
-// go routine 1
-// func (uc *brokerUsecase) DoAdvertisementQueue() {
-// 	for {
-// 		select {
-// 		case reqSrtItem := <-uc.AdvertisementQueue:
-// 			uc.SendAdvertisement(
-// 				reqSrtItem,
-// 			)
-// 		}
-// 	}
-// }
+/*
+SRT Handling:
+If the advertisement(adv) message is not in the SRT table, the advertisement message is added to the SRT table.
+If not, check the hop count of the advertisement message in the SRT table,
+1. if the request hop count is shorter, update the hop count and last hop of the advertisement message in the SRT table.
+2. if the request hop count is the same, add the last hop of the request to the last hop of the advertisement message in the SRT table.
+3. if the request hop count is longer, do nothing.
 
-// func (uc *brokerUsecase) PushAdvertisementToQueue(req *AdvertisementRequest) {
-// 	uc.AdvertisementQueue <- req
-// }
-
+Broadcast Handling:
+If the advertisement message is new or the hop count is shorter,
+broadcast the advertisement message to neighboring brokers.
+If the advertisement message is not new and the hop count is the same, do nothing.
+*/
 func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
@@ -228,37 +203,34 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 	// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
 	// 건너온 hop이 같으면 last hop에 주소를 추가하고
 	// 건너온 hop이 더 짧으면 기존 last hop의 주소를 대체함.
-	for index, item := range uc.broker.SRT {
+	for index, item := range uc.broker.SRT.Items {
+
 		fmt.Printf("srt: %s %s %s %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.HopCount)
 		fmt.Printf("reqSrtItem: %s %s %s %d\n", reqSrtItem.Advertisement.Subject, reqSrtItem.Advertisement.Operator, reqSrtItem.Advertisement.Value, reqSrtItem.HopCount)
 		if model.MatchingEngineSRT(item, reqSrtItem) {
-			if item.HopCount >= reqSrtItem.HopCount {
-				if item.HopCount == reqSrtItem.HopCount {
-					uc.broker.SRTmutex.Lock()
-					uc.broker.SRT[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
-					uc.broker.SRTmutex.Unlock()
-					uc.brokerInfoLogger.GetBrokerInfo(
-						uc.broker,
-					)
-				}
-				if item.HopCount > reqSrtItem.HopCount {
-					// reqSrtItem.HopCount += 1
-					uc.broker.SRTmutex.Lock()
-					uc.broker.SRT[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
-					uc.broker.SRTmutex.Unlock()
-					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
+			if item.HopCount == reqSrtItem.HopCount {
+				uc.broker.SRTmutex.Lock()
+				uc.broker.SRT.Items[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
+				uc.broker.SRTmutex.Unlock()
+				uc.brokerInfoLogger.GetBrokerInfo(
+					uc.broker,
+				)
+			}
+			if item.HopCount > reqSrtItem.HopCount {
+				// reqSrtItem.HopCount += 1
+				uc.broker.SRTmutex.Lock()
+				uc.broker.SRT.Items[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
+				uc.broker.SRTmutex.Unlock()
+				uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
-					isShorter = true
-				}
+				isShorter = true
 			}
 			fmt.Println("Same adv already exists.")
 
 			isExist = true
 
 			fmt.Println("============Updated LastHop in SRT============")
-			for _, item := range uc.broker.SRT {
-				fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
-			}
+			uc.broker.SRT.PrintSRT()
 		}
 	}
 
@@ -267,16 +239,14 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		// reqSrtItem.HopCount += 1
 		// srt = append(srt, reqSrtItem)
 		uc.broker.SRTmutex.Lock()
-		uc.broker.SRT = append(uc.broker.SRT, reqSrtItem)
+		uc.broker.SRT.AddItem(reqSrtItem)
 		uc.broker.SRTmutex.Unlock()
 		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
 		fmt.Println("============Added New Adv to SRT============")
-		for _, item := range uc.broker.SRT {
-			fmt.Printf("[SRT] %s %s %s | %s | %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.LastHop[0].Id, item.HopCount)
-		}
+		uc.broker.SRT.PrintSRT()
 	}
-	fmt.Println("Len SRT: ", len(uc.broker.SRT))
+	fmt.Println("Len SRT: ", len(uc.broker.SRT.Items))
 
 	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
 	if isExist == false || isShorter == true {
@@ -300,15 +270,20 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			fmt.Printf("%s\n", neighbor.Id)
 		}
 
+		RoutingAdvViaPRTTable := utils.NewFromToTable()
+		RoutingAdvViaPRTTable.SetTitle("Routing Adv via PRT")
+		if len(uc.broker.Brokers) > 0 {
+			RoutingAdvViaPRTTable.PrintTableTitle()
+			RoutingAdvViaPRTTable.PrintSeparatorLine()
+			RoutingAdvViaPRTTable.PrintHeader()
+			RoutingAdvViaPRTTable.PrintSeparatorLine()
+		}
 		for _, neighbor := range uc.broker.Brokers {
 			// 온 방향으로는 전송하지 않음
 			if neighbor.Id == advReq.Id {
+				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Skip", "incoming direction")
 				continue
 			}
-			fmt.Println("--Sending Adv to Neighbor--")
-			fmt.Println("From: ", uc.broker.Id)
-			fmt.Println("To:   ", neighbor.Id)
-			fmt.Println("-----------------------")
 			// 새로운 요청을 이웃에게 전송
 			_, err := uc.brokerClient.RPCSendAdvertisement(
 				neighbor.Ip,   //remote broker ip
@@ -328,36 +303,45 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 
 			if err != nil {
 				uc.hopLogger.Fatalf("error: %v", err)
+				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Error", err.Error())
 				continue
 			}
+			RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "SendAdv", "")
 		}
+		RoutingAdvViaPRTTable.PrintSeparatorLine()
 	}
 
 	return nil
 }
 
-// go routine 2
-// func (uc *brokerUsecase) DoSubscriptionQueue() {
-// 	for {
-// 		select {
-// 		case reqPrtItem := <-uc.SubscriptionQueue:
-// 			uc.SendSubscription(
-// 				reqPrtItem,
-// 			)
-// 		}
-// 	}
-// }
+/*
+PRT Handling:
+At the first edge broker,
+If there is advertisement message in SRT that contains the subscription message
+and the subscription(sub) message is not in the PRT table,
+the subscription message is added to the PRT table.
+At the other brokers,
+If the subscription message is not in the PRT table,
+the subscription message is added to the PRT table.
 
-// func (uc *brokerUsecase) PushSubscriptionToQueue(req *SubscriptionRequest) {
-// 	uc.SubscriptionQueue <- req
-// }
-
+Broadcast Handling:
+If the subscription message matches the advertisement message in the SRT table,
+the subscription message is sent to the last hop of the advertisement message.
+Then the last hop will do the same thing until it reaches the publisher.
+*/
 func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
 
 	newRequestPerformanceInfo := subReq.PerformanceInfo
 	newRequestPerformanceInfo = append(newRequestPerformanceInfo, uc.GetPerformanceInfo())
+	if len(newRequestPerformanceInfo) > 7 {
+		fmt.Println("PerformanceInfo Infinite loop 발생")
+		for _, info := range newRequestPerformanceInfo {
+			fmt.Println("Broker ID", info.BrokerId)
+			fmt.Println("Broker QueueLength", info.QueueLength)
+		}
+	}
 
 	uc.hopLogger.WithFields(logrus.Fields{
 		"Node":            uc.broker.Id,
@@ -376,7 +360,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 		subReq.SenderId,
 	)
 
-	for _, srtItem := range uc.broker.SRT {
+	for _, srtItem := range uc.broker.SRT.Items {
 		isExist := false
 
 		// advertisement의 subject와 operator가 subscription의 subject와 operator와 일치하는 경우:
@@ -396,7 +380,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 				// 새로운 subscription이 아닌 경우 (같은 내용의 subscription이 이미 존재하는 경우):
 				// PRT의 해당 item에 last hop 슬라이스에 없으면 추가, 있으면 추가하지 않음.
-				for index, prtItem := range uc.broker.PRT {
+				for index, prtItem := range uc.broker.PRT.Items {
 					if prtItem.Identifier.MessageId == reqPrtItem.Identifier.MessageId {
 						// PRT의 last hop 슬라이스에 주소가 이미 존재하는 경우:
 						// last hop 슬라이스 업데이트하지 않음
@@ -413,7 +397,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 						// last hop 슬라이스 업데이트함
 						if !isSameLastHop {
 							uc.broker.PRTmutex.Lock()
-							uc.broker.PRT[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
+							uc.broker.PRT.Items[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
 							uc.broker.PRTmutex.Unlock()
 							uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 
@@ -427,7 +411,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 				// PRT에 추가
 				if !isExist {
 					uc.broker.PRTmutex.Lock()
-					uc.broker.PRT = append(uc.broker.PRT, reqPrtItem)
+					uc.broker.PRT.AddItem(reqPrtItem)
 					uc.broker.PRTmutex.Unlock()
 					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
 				}
@@ -459,19 +443,24 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					fmt.Printf("%s\n", lastHop.Id)
 				}
 
-				for _, lastHop := range srtItem.LastHop {
-					fmt.Println("--Routing Sub via SRT--")
-					fmt.Println("From: ", uc.broker.Id)
-					fmt.Println("To:   ", lastHop.Id)
-					fmt.Println("-----------------------")
-
+				RoutingSubViaSRTTable := utils.NewFromToTable()
+				RoutingSubViaSRTTable.SetTitle("Routing Sub via SRT")
+				for index, lastHop := range srtItem.LastHop {
+					if index == 0 {
+						RoutingSubViaSRTTable.PrintTableTitle()
+						RoutingSubViaSRTTable.PrintSeparatorLine()
+						RoutingSubViaSRTTable.PrintHeader()
+						RoutingSubViaSRTTable.PrintSeparatorLine()
+					}
 					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
 					// if lastHop.NodeType == constants.PUBLISHER {
 					if lastHop.Id == srtItem.Identifier.SenderId {
 						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
+						RoutingSubViaSRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
 						break
 					}
 					if subReq.Port == lastHop.Port {
+						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
 						break
 					}
 					// 	for _, publisher := range uc.Publishers {
@@ -480,6 +469,7 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 					// 		}
 					// 	}
 
+					// RoutingSubViaSRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
 					// 새로운 요청을 SRT의 last hop 브로커에게 전송
 					_, err := uc.brokerClient.RPCSendSubscription(
 						lastHop.Ip,   //remote broker ip
@@ -498,9 +488,12 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 
 					if err != nil {
 						log.Printf("error: %v", err)
+						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
 						continue
 					}
+					RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
 				}
+				RoutingSubViaSRTTable.PrintSeparatorLine()
 			}
 		}
 	}
@@ -508,22 +501,11 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 	return nil
 }
 
-// go routine 3
-// func (uc *brokerUsecase) DoPublicationQueue() {
-// 	for {
-// 		select {
-// 		case reqItem := <-uc.PublicationQueue:
-// 			uc.SendPublication(
-// 				reqItem,
-// 			)
-// 		}
-// 	}
-// }
-
-// func (uc *brokerUsecase) PushPublicationToQueue(req *PublicationRequest) {
-// 	uc.PublicationQueue <- req
-// }
-
+/*
+If the publication message matches the subscription message in the PRT table,
+the publication message is sent to the last hop of the subscription message.
+Then the last hop will do the same thing until it reaches the subscriber.
+*/
 func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 	// simulator.IncreaseCpuUsage()
 	// simulator.IncreaseMemoryUsage(100)
@@ -536,7 +518,7 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 		"PerformanceInfo": newRequestPerformanceInfo,
 	}).Infof("Publication(%s %s %s) %s", pubReq.Subject, pubReq.Operator, pubReq.Value, pubReq.MessageId)
 
-	for _, item := range uc.broker.PRT {
+	for _, item := range uc.broker.PRT.Items {
 		// subscription의 subject와 publication의 subject가 같은 경우:
 		// 해당 subscription의 last hop으로 publication 전달함.
 
@@ -554,17 +536,20 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 				fmt.Printf("%s\n", lastHop.Id)
 			}
 
-			for _, lastHop := range item.LastHop {
-				fmt.Println("--Routing Pub via PRT--")
-				fmt.Println("From: ", uc.broker.Id)
-				fmt.Println("To:   ", lastHop.Id)
-				fmt.Println("-----------------------")
-
+			RoutingPubViaPRT := utils.NewFromToTable()
+			RoutingPubViaPRT.SetTitle("Routing Pub via PRT")
+			for index, lastHop := range item.LastHop {
+				if index == 0 {
+					RoutingPubViaPRT.PrintTableTitle()
+					RoutingPubViaPRT.PrintSeparatorLine()
+					RoutingPubViaPRT.PrintHeader()
+					RoutingPubViaPRT.PrintSeparatorLine()
+				}
 				// 해당하는 subscription을 보낸 subscriber에게 도달한 경우: 전달 완료
 				// if lastHop.NodeType == constants.SUBSCRIBER {
 				if lastHop.Id == item.Identifier.SenderId {
 					fmt.Printf("Publication reached subscriber %s\n", lastHop.Id)
-
+					RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Receive", "")
 					// Notify subscriber
 					uc.subscriberClient.RPCReceivePublication(
 						lastHop.Ip,
@@ -597,8 +582,10 @@ func (uc *brokerUsecase) SendPublication(pubReq *model.MessageRequest) error {
 					)
 					if err != nil {
 						log.Printf("error: %v", err)
+						RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendPublication", err.Error())
 						continue
 					}
+					RoutingPubViaPRT.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendPub", "")
 				}
 
 			}
@@ -631,7 +618,7 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 		} else {
 			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
 		}
-		interArrivalTime := broker.InterArrivalTime
+		avgerageInterArrivalTime := broker.AverageInterArrivalTime
 
 		uc.tickLogger.WithFields(logrus.Fields{
 			"CPU":                cpu,
@@ -641,7 +628,9 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
-			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Inter-Arrival Time": fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Total-Arrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()*1000),
+			"Message Count":      broker.MessageCount,
 			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
 		}).Info("Performance Metrics")
 
