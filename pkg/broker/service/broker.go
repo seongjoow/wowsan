@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"time"
 
@@ -18,6 +19,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/keepalive"
 )
 
 type BrokerService interface {
@@ -82,7 +84,14 @@ func NewBrokerService(
 		subscriberClient,
 	)
 
-	s := grpc.NewServer()
+	s := grpc.NewServer(
+		grpc.MaxConcurrentStreams(10000),
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle: 5 * time.Minute,
+			Timeout:           20 * time.Second,
+			MaxConnectionAge:  2 * time.Hour,
+		}),
+	)
 
 	gServer := grpcServer.NewBrokerRPCServer(brokerUsecase)
 	pb.RegisterBrokerServiceServer(s, gServer)
@@ -90,6 +99,16 @@ func NewBrokerService(
 	go func() {
 		if err := s.Serve(lis); err != nil {
 			log.Printf("failed to serve: %v", err)
+		}
+	}()
+
+	startTime := time.Now()
+	closeTime := startTime.Add(120 * time.Minute)
+	go func() {
+		for {
+			if time.Now().After(closeTime) {
+				os.Exit(1)
+			}
 		}
 	}()
 

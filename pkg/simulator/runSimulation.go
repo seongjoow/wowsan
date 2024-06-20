@@ -2,7 +2,7 @@ package simulator
 
 import (
 	"fmt"
-	"math/rand"
+	//"math/rand"
 	"time"
 
 	publisher "wowsan/pkg/publisher/service"
@@ -11,8 +11,11 @@ import (
 
 // getExpInterval 함수는 지수 분포를 사용하여 다음 호출까지의 대기 시간을 반환함
 func getExpInterval(lambda float64) time.Duration {
-	expRandom := rand.ExpFloat64() / lambda
-	return time.Duration(expRandom * float64(time.Second))
+	// expRandom := rand.ExpFloat64() / lambda
+	// return time.Duration(expRandom * float64(time.Second))
+
+	// format the lambda to seconds
+	return time.Duration(lambda * float64(time.Second))
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
@@ -29,7 +32,6 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	// selectedSubjectList := []string{}
 	// 채널 생성
 	subjectListChannel := make(chan []string)
-
 	// Advertise 시뮬레이션 루프
 	go func() {
 		for time.Now().Before(advEnd) {

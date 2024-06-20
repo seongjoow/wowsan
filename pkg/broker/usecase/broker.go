@@ -87,6 +87,13 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	broker := uc.broker
 	for {
 		message := <-broker.MessageQueue
+		message.EnserviceTime = time.Now()
+		// time.Sleep(1 * time.Second)
+		if broker.Port == "50003" {
+			time.Sleep(1 * time.Millisecond)
+		} else {
+			time.Sleep(1 * time.Second)
+		}
 		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
 		uc.broker.Close = time.Now()
 
