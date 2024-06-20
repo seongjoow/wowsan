@@ -10,7 +10,7 @@ import (
 	"wowsan/pkg/broker/utils"
 	"wowsan/pkg/logger"
 	model "wowsan/pkg/model"
-	"wowsan/pkg/simulator"
+	// "wowsan/pkg/simulator"
 	subscriberTransport "wowsan/pkg/subscriber/grpc/client"
 
 	pb "wowsan/pkg/proto/broker"
@@ -87,7 +87,6 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	broker := uc.broker
 	for {
 		message := <-broker.MessageQueue
-
 		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
 		uc.broker.Close = time.Now()
 
@@ -103,69 +102,40 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		switch message.MessageType {
 		case constants.ADVERTISEMENT:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(2.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendAdvertisement(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
-
 			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
 		case constants.SUBSCRIPTION:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendSubscription(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
 			// log.Printf("Cumulative Average Service Time: %v\n", avgServiceTime)
+
 		case constants.PUBLICATION:
 			// 서비스 시간 측정 시작
-			message.EnserviceTime = time.Now()
-
-			// time.Sleep(2 * time.Second)
-			randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
-			time.Sleep(randomServiceTime)
-
+			// randomServiceTime := simulator.GetGaussianFigure(0.8, 0.5)
+			// time.Sleep(randomServiceTime)
 			uc.SendPublication(message)
-
-			// 서비스 시간 측정 종료
-			serviceTime := time.Since(message.EnserviceTime)
-
-			totalServiceTime += serviceTime
-			avgServiceTime := totalServiceTime / time.Duration(messageCount)
-			uc.broker.ServiceTime = avgServiceTime
 			// log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
 		}
+		serviceTime := time.Since(message.EnserviceTime)
+		totalServiceTime += serviceTime
+		avgServiceTime := totalServiceTime / time.Duration(messageCount)
+		uc.broker.ServiceTime = avgServiceTime
 	}
 }
 
 func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
-	var totalInterArrivalTime time.Duration
-	var messageCount int64
+	uc.broker.SRTmutex.Lock()
+	defer uc.broker.SRTmutex.Unlock()
 
 	// 큐 대기 시간 측정 시작
 	msgReq.EnqueueTime = time.Now()
 
 	uc.broker.MessageQueue <- msgReq
-	messageCount++
+	uc.broker.MessageCount++
 
 	if uc.broker.LastArrivalTime.IsZero() {
 		uc.broker.LastArrivalTime = msgReq.EnqueueTime
@@ -173,9 +143,10 @@ func (uc *brokerUsecase) PushMessageToQueue(msgReq *model.MessageRequest) {
 		uc.broker.InterArrivalTime = msgReq.EnqueueTime.Sub(uc.broker.LastArrivalTime)
 		uc.broker.LastArrivalTime = msgReq.EnqueueTime
 
-		totalInterArrivalTime += uc.broker.InterArrivalTime
-		avgInterArrivalTime := totalInterArrivalTime / time.Duration(messageCount)
-		uc.broker.InterArrivalTime = avgInterArrivalTime
+		uc.broker.TotalInterArrivalTime += uc.broker.InterArrivalTime
+
+		avgInterArrivalTime := uc.broker.TotalInterArrivalTime / time.Duration(uc.broker.MessageCount)
+		uc.broker.AverageInterArrivalTime = avgInterArrivalTime
 		// log.Printf("Cumulative Average Inter-arrival Time: %v\n", avgInterArrivalTime)
 	}
 
@@ -640,7 +611,7 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 		} else {
 			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
 		}
-		interArrivalTime := broker.InterArrivalTime
+		avgerageInterArrivalTime := broker.AverageInterArrivalTime
 
 		uc.tickLogger.WithFields(logrus.Fields{
 			"CPU":                cpu,
@@ -650,7 +621,9 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			"Throughput":         fmt.Sprintf("%.6f", throughput),
-			"Inter-Arrival Time": fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Inter-Arrival Time": fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Total-Arrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()*1000),
+			"Message Count":      broker.MessageCount,
 			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
 		}).Info("Performance Metrics")
 
