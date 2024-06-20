@@ -4,6 +4,9 @@ setlocal enabledelayedexpansion
 SET "TICK_DIR_NAME=./log/tickLogger/"
 SET "HOP_DIR_NAME=./log/hopLogger/"
 SET "MAX_INDEX=0"
+SET "RUN=.\cmd\broker\run\main.go"
+SET "BROKER_START=50001"
+SET "BROKER_END=50005"
 
 :: 디렉토리 존재 여부 확인
 IF NOT EXIST "%TICK_DIR_NAME%" (
@@ -23,8 +26,9 @@ IF EXIST "./%TICK_DIR_NAME%%MAX_INDEX%" (
     GOTO loop
 )
 
-FOR /L %%P IN (50001, 1, 50010) DO (
-    START "Broker Service on Port %%P" cmd /c go run .\cmd\broker\main_test_fixed.go --port %%P --dir_index %MAX_INDEX%
+@REM START "Broker Service on Port %%P" cmd /c go run .\cmd\broker\main_test_3.go --port 50001 --dir_index %MAX_INDEX%
+FOR /L %%P IN (%BROKER_START%, 1, %BROKER_END%) DO (
+    START "Broker Service on Port %%P" cmd /c go run %RUN% --port %%P --dir_index %MAX_INDEX%
 )
 
 endlocal
