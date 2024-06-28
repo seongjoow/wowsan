@@ -24,7 +24,7 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string, controlChan chan string) {
+func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string, advControlChan, pubControlChan chan string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
@@ -40,22 +40,23 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	// Advertise 시뮬레이션 루프
 	go func() {
 		for time.Now().Before(advEnd) {
+			// fmt.Printf("len of controlChan:%d [from %s]\n", len(advControlChan), publisherPort)
 			select {
-
-			case cmd := <-controlChan:
+			case cmd := <-advControlChan:
+				fmt.Printf("Adv received command: %s\n", cmd)
 				if cmd == PAUSE {
-					for cmd := range controlChan {
-						// wait for resume command
-						if cmd == RESUME {
+					for time.Now().Before(advEnd) {
+						fmt.Printf("Adv loop paused, port:%s\n", publisherPort)
+						if RESUME == <-advControlChan {
+							fmt.Printf("Adv loop resumed\n")
 							break
 						}
 					}
 				}
-			default:
-				subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
+			case <-time.After(getExpInterval(advLambda)):
 
-				interval := getExpInterval(advLambda)
-				time.Sleep(interval)
+				fmt.Printf("Publishing...[from %s| to %s]\n", publisherPort, brokerPort)
+				subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
 
 				// 채널을 통해 리스트 전송
 				subjectListChannel <- newSelectedSubjectList
@@ -71,11 +72,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	// Publish 시뮬레이션 루프
 	for time.Now().Before(pubEnd) {
 		select {
-		case cmd := <-controlChan:
+		case cmd := <-pubControlChan:
 			if cmd == PAUSE {
-				for cmd := range controlChan {
-					// wait for resume command
-					if cmd == RESUME {
+				for time.Now().Before(pubEnd) {
+					fmt.Printf("Pub loop paused, port:%s\n", publisherPort)
+					if RESUME == <-pubControlChan {
+						fmt.Printf("Pub loop resumed\n")
 						break
 					}
 				}

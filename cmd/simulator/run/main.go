@@ -8,26 +8,28 @@ import (
 )
 
 type PubServers struct {
-	Servers     []string
-	Duration    int
-	Mu          sync.Mutex
-	Start       time.Time
-	AdvDuration int
-	AdvLambda   float64
-	PubLambda   float64
-	ControlChan chan string
+	Servers        []string
+	Duration       int
+	Mu             sync.Mutex
+	Start          time.Time
+	AdvDuration    int
+	AdvLambda      float64
+	PubLambda      float64
+	AdvControlChan chan string
+	PubControlChan chan string
 }
 
 func NewPubServers() PubServers {
 	return PubServers{
-		Servers:     []string{},
-		Duration:    30 * 1,
-		Mu:          sync.Mutex{},
-		Start:       time.Now(),
-		AdvDuration: 60 * 60, // 1 hour
-		AdvLambda:   2.0,     // 2 seconds
-		PubLambda:   2.0,     // 2 seconds
-		ControlChan: make(chan string),
+		Servers:        []string{},
+		Duration:       60 * 60,
+		Mu:             sync.Mutex{},
+		Start:          time.Now(),
+		AdvDuration:    60 * 60, // 1 hour
+		AdvLambda:      2.0,     // 2 seconds
+		PubLambda:      2.0,     // 2 seconds
+		AdvControlChan: make(chan string, 10),
+		PubControlChan: make(chan string, 10),
 	}
 }
 
@@ -59,7 +61,8 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 		"localhost",
 		fmt.Sprintf("%d", port),
 		[]string{"apple"},
-		pubServers.ControlChan,
+		pubServers.AdvControlChan,
+		pubServers.PubControlChan,
 	)
 
 	serverAddress := fmt.Sprintf(":%d", port)
@@ -99,9 +102,19 @@ func main() {
 	// if start time is 10 minutes, set the pubServer3 pause time to 10 minutes, then resume it after 10 minutes.
 	go func() {
 		time.Sleep(10 * time.Minute)
-		pubServers3.ControlChan <- simulator.PAUSE
+		fmt.Print("========================")
+		fmt.Println("pause")
+		pubServers3.Mu.Lock()
+		pubServers3.AdvControlChan <- simulator.PAUSE
+		pubServers3.Mu.Unlock()
+		fmt.Print("========================")
 		time.Sleep(5 * time.Minute)
-		pubServers3.ControlChan <- simulator.RESUME
+		fmt.Print("========================")
+		fmt.Println("resume")
+		pubServers3.Mu.Lock()
+		pubServers3.AdvControlChan <- simulator.RESUME
+		pubServers3.Mu.Unlock()
+		fmt.Print("========================")
 	}()
 
 	for range ticker.C {
