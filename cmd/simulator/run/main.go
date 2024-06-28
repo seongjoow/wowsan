@@ -15,6 +15,7 @@ type PubServers struct {
 	AdvDuration int
 	AdvLambda   float64
 	PubLambda   float64
+	ControlChan chan string
 }
 
 func NewPubServers() PubServers {
@@ -26,6 +27,7 @@ func NewPubServers() PubServers {
 		AdvDuration: 60 * 60, // 1 hour
 		AdvLambda:   2.0,     // 2 seconds
 		PubLambda:   2.0,     // 2 seconds
+		ControlChan: make(chan string),
 	}
 }
 
@@ -57,6 +59,7 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 		"localhost",
 		fmt.Sprintf("%d", port),
 		[]string{"apple"},
+		pubServers.ControlChan,
 	)
 
 	serverAddress := fmt.Sprintf(":%d", port)
@@ -92,6 +95,14 @@ func main() {
 	time.Sleep(sleepTime)
 	startPubServers(&pubServers5, 60005, "50005") //broker 5
 	time.Sleep(sleepTime)
+
+	// if start time is 10 minutes, set the pubServer3 pause time to 10 minutes, then resume it after 10 minutes.
+	go func() {
+		time.Sleep(10 * time.Minute)
+		pubServers3.ControlChan <- simulator.PAUSE
+		time.Sleep(5 * time.Minute)
+		pubServers3.ControlChan <- simulator.RESUME
+	}()
 
 	for range ticker.C {
 		startPubServers(&pubServerLoop, 60010, "50003")
