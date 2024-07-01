@@ -10,6 +10,7 @@ import (
 	"wowsan/pkg/broker/utils"
 	"wowsan/pkg/logger"
 	model "wowsan/pkg/model"
+
 	// "wowsan/pkg/simulator"
 	subscriberTransport "wowsan/pkg/subscriber/grpc/client"
 
@@ -621,17 +622,17 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 		avgerageInterArrivalTime := broker.AverageInterArrivalTime
 
 		uc.tickLogger.WithFields(logrus.Fields{
-			"CPU":                cpu,
-			"Memory":             memory,
-			"Queue Length":       queueLength,
-			"Queue Time":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
-			"Service Time":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"Response Time":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
-			"Throughput":         fmt.Sprintf("%.6f", throughput),
-			"Inter-Arrival Time": fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"Total-Arrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()*1000),
-			"Message Count":      broker.MessageCount,
-			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
+			"Cpu":               cpu,
+			"Memory":            memory,
+			"QueueLength":       queueLength,
+			"QueueTime":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
+			"ServiceTime":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"ResponseTime":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
+			"Throughput":        fmt.Sprintf("%.6f", throughput),
+			"InterArrivalTime":  fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"Bottleneck":        uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
+			"TotalArrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()*1000),
+			"MessageCount":      broker.MessageCount,
 		}).Info("Performance Metrics")
 
 		// LogBrokerInfoToLogfile(broker)
