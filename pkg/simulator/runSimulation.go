@@ -9,6 +9,11 @@ import (
 	subscriber "wowsan/pkg/subscriber/service"
 )
 
+const (
+	PAUSE  = "pause"
+	RESUME = "resume"
+)
+
 // getExpInterval 함수는 지수 분포를 사용하여 다음 호출까지의 대기 시간을 반환함
 func getExpInterval(lambda float64) time.Duration {
 	// expRandom := rand.ExpFloat64() / lambda
@@ -19,7 +24,7 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string) {
+func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string, advControlChan, pubControlChan chan string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
@@ -35,16 +40,30 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	// Advertise 시뮬레이션 루프
 	go func() {
 		for time.Now().Before(advEnd) {
-			subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
+			// fmt.Printf("len of controlChan:%d [from %s]\n", len(advControlChan), publisherPort)
+			select {
+			case cmd := <-advControlChan:
+				fmt.Printf("Adv received command: %s\n", cmd)
+				if cmd == PAUSE {
+					for time.Now().Before(advEnd) {
+						fmt.Printf("Adv loop paused, port:%s\n", publisherPort)
+						if RESUME == <-advControlChan {
+							fmt.Printf("Adv loop resumed\n")
+							break
+						}
+					}
+				}
+			case <-time.After(getExpInterval(advLambda)):
 
-			interval := getExpInterval(advLambda)
-			time.Sleep(interval)
+				fmt.Printf("Publishing...[from %s| to %s]\n", publisherPort, brokerPort)
+				subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
 
-			// 채널을 통해 리스트 전송
-			subjectListChannel <- newSelectedSubjectList
+				// 채널을 통해 리스트 전송
+				subjectListChannel <- newSelectedSubjectList
 
-			// // 메세지 전달 함수 호출
-			publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
+				// // 메세지 전달 함수 호출
+				publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
+			}
 		}
 
 		close(subjectListChannel) // 고루틴 종료 시 채널 닫기
@@ -52,25 +71,39 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 
 	// Publish 시뮬레이션 루프
 	for time.Now().Before(pubEnd) {
-		// 채널에서 데이터 수신
-		selectedSubjectList, ok := <-subjectListChannel
-		if !ok {
-			break // 채널이 닫혔다면 루프 종료
+		select {
+		case cmd := <-pubControlChan:
+			if cmd == PAUSE {
+				for time.Now().Before(pubEnd) {
+					fmt.Printf("Pub loop paused, port:%s\n", publisherPort)
+					if RESUME == <-pubControlChan {
+						fmt.Printf("Pub loop resumed\n")
+						break
+					}
+				}
+			}
+		default:
+
+			// 채널에서 데이터 수신
+			selectedSubjectList, ok := <-subjectListChannel
+			if !ok {
+				break // 채널이 닫혔다면 루프 종료
+			}
+
+			fmt.Println(len(selectedSubjectList))
+
+			if len(selectedSubjectList) == 0 {
+				continue
+			}
+
+			subject, operator, value := PubPredicateGenerator(selectedSubjectList)
+
+			interval := getExpInterval(pubLambda)
+			time.Sleep(interval)
+
+			// 메세지 전달 함수 호출
+			publisherService.PublisherUsecase.Pub(subject, operator, value, brokerIp, brokerPort)
 		}
-
-		fmt.Println(len(selectedSubjectList))
-
-		if len(selectedSubjectList) == 0 {
-			continue
-		}
-
-		subject, operator, value := PubPredicateGenerator(selectedSubjectList)
-
-		interval := getExpInterval(pubLambda)
-		time.Sleep(interval)
-
-		// 메세지 전달 함수 호출
-		publisherService.PublisherUsecase.Pub(subject, operator, value, brokerIp, brokerPort)
 	}
 }
 
