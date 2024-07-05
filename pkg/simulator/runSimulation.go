@@ -43,12 +43,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 			// fmt.Printf("len of controlChan:%d [from %s]\n", len(advControlChan), publisherPort)
 			select {
 			case cmd := <-advControlChan:
-				fmt.Printf("Adv received command: %s\n", cmd)
+				fmt.Printf("Advertisement received command: %s\n", cmd)
 				if cmd == PAUSE {
 					for time.Now().Before(advEnd) {
-						fmt.Printf("Adv loop paused, port:%s\n", publisherPort)
+						fmt.Printf("Advertisement loop paused, port:%s\n", publisherPort)
 						if RESUME == <-advControlChan {
-							fmt.Printf("Adv loop resumed\n")
+							fmt.Printf("Advertisement loop resumed\n")
 							break
 						}
 					}
@@ -75,9 +75,9 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 		case cmd := <-pubControlChan:
 			if cmd == PAUSE {
 				for time.Now().Before(pubEnd) {
-					fmt.Printf("Pub loop paused, port:%s\n", publisherPort)
+					fmt.Printf("Publication loop paused, port:%s\n", publisherPort)
 					if RESUME == <-pubControlChan {
-						fmt.Printf("Pub loop resumed\n")
+						fmt.Printf("Publication loop resumed\n")
 						break
 					}
 				}
