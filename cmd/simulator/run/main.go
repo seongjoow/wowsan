@@ -8,28 +8,29 @@ import (
 )
 
 type PubServers struct {
-	Servers        []string
-	Duration       int
-	Mu             sync.Mutex
-	Start          time.Time
-	AdvDuration    int
-	AdvLambda      float64
-	PubLambda      float64
-	AdvControlChan chan string
-	PubControlChan chan string
+	Servers     []string
+	Duration    int
+	Mu          sync.Mutex
+	Start       time.Time
+	AdvDuration int
+	AdvLambda   float64
+	PubLambda   float64
+	// AdvControlChan chan string
+	AdvControlChans []chan string
+	PubControlChan  chan string
 }
 
 func NewPubServers() PubServers {
 	return PubServers{
-		Servers:        []string{},
-		Duration:       60 * 60,
-		Mu:             sync.Mutex{},
-		Start:          time.Now(),
-		AdvDuration:    60 * 60, // 1 hour
-		AdvLambda:      2.0,     // 2 seconds
-		PubLambda:      2.0,     // 2 seconds
-		AdvControlChan: make(chan string, 10),
-		PubControlChan: make(chan string, 10),
+		Servers:         []string{},
+		Duration:        60 * 60,
+		Mu:              sync.Mutex{},
+		Start:           time.Now(),
+		AdvDuration:     60 * 60, // 1 hour
+		AdvLambda:       2.0,     // 2 seconds
+		PubLambda:       2.0,     // 2 seconds
+		AdvControlChans: []chan string{},
+		PubControlChan:  make(chan string, 10),
 	}
 }
 
@@ -49,8 +50,28 @@ func NewPubServers() PubServers {
 // 	Start    time.Time
 // }
 
+func controlAllServers(pubServers *PubServers, command string) {
+	pubServers.Mu.Lock()
+	defer pubServers.Mu.Unlock()
+
+	for _, ch := range pubServers.AdvControlChans {
+		ch <- command
+	}
+}
+
 func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string) {
-	port := pubStartPort + len(pubServers.Servers) + 1
+	var port int
+	if len(pubServers.Servers) > 0 {
+		port = pubStartPort + len(pubServers.Servers) + 1
+	} else {
+		port = pubStartPort
+	}
+
+	controlChan := make(chan string, 10)
+	pubServers.Mu.Lock()
+	pubServers.AdvControlChans = append(pubServers.AdvControlChans, controlChan)
+	pubServers.Mu.Unlock()
+
 	go simulator.RunPublisherSimulation(
 		pubServers.AdvDuration,
 		pubServers.Duration,
@@ -61,7 +82,7 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 		"localhost",
 		fmt.Sprintf("%d", port),
 		[]string{"apple"},
-		pubServers.AdvControlChan,
+		controlChan,
 		pubServers.PubControlChan,
 	)
 
@@ -73,11 +94,7 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 }
 
 func main() {
-	sleepTime := 10 * time.Second
-	startTime := time.Now()
-	closeTime := startTime.Add(120 * time.Minute)
-
-	ticker := time.NewTicker(sleepTime)
+	initPunDuration := 10 * time.Second
 
 	pubServers1 := NewPubServers()
 	pubServers2 := NewPubServers()
@@ -89,37 +106,56 @@ func main() {
 	pubServerLoop := NewPubServers()
 
 	startPubServers(&pubServers1, 60001, "50001") //broker 1
-	time.Sleep(sleepTime)
+	time.Sleep(initPunDuration)
 	startPubServers(&pubServers2, 60002, "50001") //broker 1
-	time.Sleep(sleepTime)
+	time.Sleep(initPunDuration)
 	startPubServers(&pubServers3, 60003, "50003") //broker 3
-	time.Sleep(sleepTime)
+	time.Sleep(initPunDuration)
 	startPubServers(&pubServers4, 60004, "50004") //broker 4
-	time.Sleep(sleepTime)
+	time.Sleep(initPunDuration)
 	startPubServers(&pubServers5, 60005, "50005") //broker 5
-	time.Sleep(sleepTime)
+	time.Sleep(initPunDuration)
 
-	// if start time is 10 minutes, set the pubServer3 pause time to 10 minutes, then resume it after 10 minutes.
-	go func() {
-		time.Sleep(10 * time.Minute)
-		fmt.Print("========================")
-		fmt.Println("pause")
-		pubServers3.Mu.Lock()
-		pubServers3.AdvControlChan <- simulator.PAUSE
-		pubServers3.Mu.Unlock()
-		fmt.Print("========================")
-		time.Sleep(5 * time.Minute)
-		fmt.Print("========================")
-		fmt.Println("resume")
-		pubServers3.Mu.Lock()
-		pubServers3.AdvControlChan <- simulator.RESUME
-		pubServers3.Mu.Unlock()
-		fmt.Print("========================")
-	}()
+	// for loop every 1 second
+	checkDuration := 1 * time.Second
+	ticker := time.NewTicker(checkDuration)
+
+	startTime := time.Now()
+	simulateTimer := time.Now() // to calculate whether or not to pause the simulation, will reset when the pause time is reached
+	pubCloseTime := startTime.Add(120 * time.Minute)
+	addNewPubServerTime := startTime.Add(initPunDuration) // to calculate whether or not to start new pub server
 
 	for range ticker.C {
-		startPubServers(&pubServerLoop, 60010, "50003")
-		if time.Now().After(closeTime) {
+		simulateEndTime := simulateTimer.Add(2 * time.Minute)
+		pauseEndTime := simulateEndTime.Add(2 * time.Minute)
+
+		isPaused := false
+
+		if time.Now().Before(simulateEndTime) { // new pub server and send message
+			if time.Now().After(addNewPubServerTime) {
+				startPubServers(&pubServerLoop, 60010, "50003")
+				addNewPubServerTime = time.Now().Add(initPunDuration)
+			}
+
+		} else if time.Now().Before(pauseEndTime) { // pause
+			if !isPaused {
+				fmt.Printf("Pausing broker 3 message generation...\n")
+				controlAllServers(&pubServers3, simulator.PAUSE)
+				controlAllServers(&pubServerLoop, simulator.PAUSE)
+				isPaused = true
+			}
+		} else {
+			fmt.Printf("Resuming broker 3 message generation...\n")
+			// reset start time
+			controlAllServers(&pubServers3, simulator.RESUME)
+			controlAllServers(&pubServerLoop, simulator.RESUME)
+
+			isPaused = false
+			simulateTimer = pauseEndTime
+		}
+
+		// exit
+		if time.Now().After(pubCloseTime) {
 			break
 		}
 	}
