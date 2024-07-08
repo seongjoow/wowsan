@@ -10,6 +10,7 @@ import (
 )
 
 const (
+	START  = "start"
 	PAUSE  = "pause"
 	RESUME = "resume"
 )
@@ -37,6 +38,7 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	// selectedSubjectList := []string{}
 	// 채널 생성
 	subjectListChannel := make(chan []string)
+	runnimg := false
 	// Advertise 시뮬레이션 루프
 	go func() {
 		for time.Now().Before(advEnd) {
@@ -52,10 +54,15 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 							break
 						}
 					}
+				} else if cmd == START {
+					runnimg = true
 				}
 			case <-time.After(getExpInterval(advLambda)):
+				if !runnimg {
+					continue
+				}
 
-				fmt.Printf("Publishing...[from %s| to %s]\n", publisherPort, brokerPort)
+				fmt.Printf("Publishing...[from %s to %s]\n", publisherPort, brokerPort)
 				subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
 
 				// 채널을 통해 리스트 전송
@@ -83,6 +90,9 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 				}
 			}
 		default:
+			if !runnimg {
+				continue
+			}
 
 			// 채널에서 데이터 수신
 			selectedSubjectList, ok := <-subjectListChannel
