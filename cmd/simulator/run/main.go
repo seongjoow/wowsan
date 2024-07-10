@@ -171,79 +171,79 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 	fmt.Printf("Server started at %s\n", serverAddress)
 }
 
-func simulator2minsPause2minsResume() {
-	initPunDuration := 10 * time.Second
+// func simulator2minsPause2minsResume() {
+// 	initPubDuration := 10 * time.Second
 
-	pubServers1 := NewPubServers()
-	pubServers2 := NewPubServers()
-	pubServers3 := NewPubServers()
-	pubServers4 := NewPubServers()
-	pubServers5 := NewPubServers()
-	// pubServers5.AdvLambda = 1.0
+// 	pubServers1 := NewPubServers()
+// 	pubServers2 := NewPubServers()
+// 	pubServers3 := NewPubServers()
+// 	pubServers4 := NewPubServers()
+// 	pubServers5 := NewPubServers()
+// 	// pubServers5.AdvLambda = 1.0
 
-	pubServerLoop := NewPubServers()
+// 	pubServerLoop := NewPubServers()
 
-	startPubServers(&pubServers1, 60001, "50001") //broker 1
-	startPubServers(&pubServers2, 60002, "50001") //broker 1
-	startPubServers(&pubServers3, 60003, "50003") //broker 3
-	startPubServers(&pubServers4, 60004, "50004") //broker 4
-	startPubServers(&pubServers5, 60005, "50005") //broker 5
+// 	startPubServers(&pubServers1, 60001, "50001") //broker 1
+// 	startPubServers(&pubServers2, 60002, "50001") //broker 1
+// 	startPubServers(&pubServers3, 60003, "50003") //broker 3
+// 	startPubServers(&pubServers4, 60004, "50004") //broker 4
+// 	startPubServers(&pubServers5, 60005, "50005") //broker 5
 
-	controlAllServers(&pubServers1, simulator.START)
-	time.Sleep(initPunDuration)
-	controlAllServers(&pubServers2, simulator.START)
-	time.Sleep(initPunDuration)
-	controlAllServers(&pubServers3, simulator.START)
-	time.Sleep(initPunDuration)
-	controlAllServers(&pubServers4, simulator.START)
-	time.Sleep(initPunDuration)
-	controlAllServers(&pubServers5, simulator.START)
-	time.Sleep(initPunDuration)
+// 	controlAllServers(&pubServers1, simulator.START)
+// 	time.Sleep(initPunDuration)
+// 	controlAllServers(&pubServers2, simulator.START)
+// 	time.Sleep(initPunDuration)
+// 	controlAllServers(&pubServers3, simulator.START)
+// 	time.Sleep(initPunDuration)
+// 	controlAllServers(&pubServers4, simulator.START)
+// 	time.Sleep(initPunDuration)
+// 	controlAllServers(&pubServers5, simulator.START)
+// 	time.Sleep(initPunDuration)
 
-	// for loop every 1 second
-	checkDuration := 1 * time.Second
-	ticker := time.NewTicker(checkDuration)
+// 	// for loop every 1 second
+// 	checkDuration := 1 * time.Second
+// 	ticker := time.NewTicker(checkDuration)
 
-	startTime := time.Now()
-	simulateTimer := time.Now() // to calculate whether or not to pause the simulation, will reset when the pause time is reached
-	pubCloseTime := startTime.Add(120 * time.Minute)
-	addNewPubServerTime := startTime.Add(initPunDuration) // to calculate whether or not to start new pub server
+// 	startTime := time.Now()
+// 	simulateTimer := time.Now() // to calculate whether or not to pause the simulation, will reset when the pause time is reached
+// 	pubCloseTime := startTime.Add(120 * time.Minute)
+// 	addNewPubServerTime := startTime.Add(initPunDuration) // to calculate whether or not to start new pub server
 
-	for range ticker.C {
-		simulateEndTime := simulateTimer.Add(2 * time.Minute)
-		pauseEndTime := simulateEndTime.Add(2 * time.Minute)
+// 	for range ticker.C {
+// 		simulateEndTime := simulateTimer.Add(2 * time.Minute)
+// 		pauseEndTime := simulateEndTime.Add(2 * time.Minute)
 
-		isPaused := false
+// 		isPaused := false
 
-		if time.Now().Before(simulateEndTime) { // new pub server and send message
-			if time.Now().After(addNewPubServerTime) {
-				startPubServers(&pubServerLoop, 60010, "50003")
-				controlAllServers(&pubServerLoop, simulator.START)
-				addNewPubServerTime = time.Now().Add(initPunDuration)
-			}
+// 		if time.Now().Before(simulateEndTime) { // new pub server and send message
+// 			if time.Now().After(addNewPubServerTime) {
+// 				startPubServers(&pubServerLoop, 60010, "50003")
+// 				controlAllServers(&pubServerLoop, simulator.START)
+// 				addNewPubServerTime = time.Now().Add(initPunDuration)
+// 			}
 
-		} else if time.Now().Before(pauseEndTime) { // pause
-			if !isPaused {
-				fmt.Printf("Pausing broker 3 message generation...\n")
-				controlAllServers(&pubServers3, simulator.PAUSE)
-				controlAllServers(&pubServerLoop, simulator.PAUSE)
-				isPaused = true
-			}
-		} else {
-			fmt.Printf("Resuming broker 3 message generation...\n")
-			// reset start time
-			controlAllServers(&pubServers3, simulator.RESUME)
-			controlAllServers(&pubServerLoop, simulator.RESUME)
+// 		} else if time.Now().Before(pauseEndTime) { // pause
+// 			if !isPaused {
+// 				fmt.Printf("Pausing broker 3 message generation...\n")
+// 				controlAllServers(&pubServers3, simulator.PAUSE)
+// 				controlAllServers(&pubServerLoop, simulator.PAUSE)
+// 				isPaused = true
+// 			}
+// 		} else {
+// 			fmt.Printf("Resuming broker 3 message generation...\n")
+// 			// reset start time
+// 			controlAllServers(&pubServers3, simulator.RESUME)
+// 			controlAllServers(&pubServerLoop, simulator.RESUME)
 
-			isPaused = false
-			simulateTimer = pauseEndTime
-		}
+// 			isPaused = false
+// 			simulateTimer = pauseEndTime
+// 		}
 
-		if time.Now().After(pubCloseTime) {
-			break
-		}
-	}
-}
+// 		if time.Now().After(pubCloseTime) {
+// 			break
+// 		}
+// 	}
+// }
 
 func simulatorRandomPause() {
 	// new pub server
@@ -291,7 +291,7 @@ func simulatorRandomPause() {
 		} else {
 			nextAction++
 		}
-		randPercentage := 0.3 + r.Float64()*0.4 // 0.3 + [0, 0.4) -> [0.3, 0.7)
+		randPercentage := 0.5 + r.Float64()*0.5 // 0.3 + [0, 0.4) -> [0.3, 0.7)
 		switch action {
 		case simulator.PAUSE:
 			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
