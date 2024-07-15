@@ -266,7 +266,7 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 100
+	publisherCount := 1
 	for i := 0; i < publisherCount; i++ {
 		startPubServers(&pubServerLoop, 60010, "50003")
 	}
@@ -281,6 +281,9 @@ func simulatorRandomPause() {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 
 	for range ticker.C {
+		// randomInterval := time.Duration(r.Intn(4)+1) * time.Minute
+		randomInterval := time.Duration(r.Intn(3)+7) * time.Minute
+		time.Sleep(randomInterval)
 		if time.Now().After(pubCloseTime) {
 			break
 		}
@@ -291,7 +294,11 @@ func simulatorRandomPause() {
 		} else {
 			nextAction++
 		}
-		randPercentage := 0.5 + r.Float64()*0.5 // 0.3 + [0, 0.4) -> [0.3, 0.7)
+		// randPercentage := 0.5 + r.Float64()*0.5 // 0.3 + [0, 0.4) -> [0.3, 0.7)
+		//70~100%
+		// randPercentage := 0.7 + r.Float64()*0.2
+		// 100%
+		randPercentage := 1.0
 		switch action {
 		case simulator.PAUSE:
 			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
@@ -308,9 +315,6 @@ func simulatorRandomPause() {
 			// 		controlRandomServers(&pubServerLoop, randPercentage, simulator.START)
 			// 	}
 		}
-
-		randomInterval := time.Duration(r.Intn(3)+1) * time.Minute
-		time.Sleep(randomInterval)
 	}
 }
 
