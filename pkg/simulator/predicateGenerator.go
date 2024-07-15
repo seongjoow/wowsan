@@ -1,22 +1,27 @@
 package simulator
 
 import (
-	uuid "github.com/satori/go.uuid"
+	// uuid "github.com/satori/go.uuid"
+	"fmt"
 	"math/rand"
+	"time"
 )
 
 func AdvPredicateGenerator(subjectList []string) (string, string, string, []string) {
 	// valueList := []string{"50", "60", "70", "80", "90"}
+	// valueList := []string{string(uuid.NewV4().String())}
 
-	valueList := []string{string(uuid.NewV4().String())}
 	selectedSubjectList := []string{}
 
 	subject := subjectList[rand.Intn(len(subjectList))]
 	selectedSubjectList = append(selectedSubjectList, subject)
 	operator := ">"
-	value := valueList[rand.Intn(len(valueList))]
+	// value := valueList[rand.Intn(len(valueList))]
+	rand.Seed(time.Now().UnixNano()) // 현재 시간을 기반으로 난수 생성기에 시드값 제공
+	value := rand.Intn(50) + 1       // 1부터 100까지의 랜덤 숫자 생성
+	valueStr := fmt.Sprint(value)
 
-	return subject, operator, value, selectedSubjectList
+	return subject, operator, valueStr, selectedSubjectList
 }
 
 func SubPredicateGenerator(subjectList []string) (string, string, string) {
