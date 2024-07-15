@@ -266,7 +266,7 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 1
+	publisherCount := 50
 	for i := 0; i < publisherCount; i++ {
 		startPubServers(&pubServerLoop, 60010, "50003")
 	}
