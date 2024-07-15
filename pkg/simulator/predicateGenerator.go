@@ -1,20 +1,23 @@
 package simulator
 
 import (
-	uuid "github.com/satori/go.uuid"
+	// uuid "github.com/satori/go.uuid"
 	"math/rand"
+	"strconv"
 )
 
 func AdvPredicateGenerator(subjectList []string) (string, string, string, []string) {
 	// valueList := []string{"50", "60", "70", "80", "90"}
 
-	valueList := []string{string(uuid.NewV4().String())}
+	// valueList := []string{string(uuid.NewV4().String())}
+
 	selectedSubjectList := []string{}
 
 	subject := subjectList[rand.Intn(len(subjectList))]
 	selectedSubjectList = append(selectedSubjectList, subject)
 	operator := ">"
-	value := valueList[rand.Intn(len(valueList))]
+	// value := valueList[rand.Intn(len(valueList))]
+	value := strconv.FormatFloat(rand.Float64()*rand.ExpFloat64(), 'f', -1, 64) // Generate a random float, possibly very large
 
 	return subject, operator, value, selectedSubjectList
 }

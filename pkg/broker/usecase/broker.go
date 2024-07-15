@@ -3,7 +3,8 @@ package usecase
 import (
 	"fmt"
 	"log"
-	"strconv"
+	"math/rand"
+	// "strconv"
 	"time"
 	"wowsan/constants"
 	brokerTransport "wowsan/pkg/broker/grpc/client"
@@ -91,9 +92,11 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		message.EnserviceTime = time.Now()
 		// time.Sleep(1 * time.Second)
 		if broker.Port == "50003" {
-			time.Sleep(1 * time.Millisecond)
+			// sleep random time 100 ms ~ 500 ms
+			time.Sleep(time.Duration(rand.Intn(500)+100) * time.Millisecond)
 		} else {
-			time.Sleep(1 * time.Second)
+			// time.Sleep(10 * time.Second)
+			time.Sleep(time.Duration(rand.Intn(500)+100) * time.Millisecond)
 		}
 		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
 		uc.broker.Close = time.Now()
@@ -198,60 +201,45 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 		advReq.SenderId,
 	)
 
-	isExist := false
 	isShorter := false
 
 	// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
 	// 건너온 hop이 같으면 last hop에 주소를 추가하고
 	// 건너온 hop이 더 짧으면 기존 last hop의 주소를 대체함.
-	for index, item := range uc.broker.SRT.Items {
+	item, exists := uc.broker.SRT.GetItem(
+		reqSrtItem.Advertisement.Subject,
+		reqSrtItem.Advertisement.Operator,
+		reqSrtItem.Advertisement.Value,
+	)
 
-		fmt.Printf("srt: %s %s %s %d\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.HopCount)
-		fmt.Printf("reqSrtItem: %s %s %s %d\n", reqSrtItem.Advertisement.Subject, reqSrtItem.Advertisement.Operator, reqSrtItem.Advertisement.Value, reqSrtItem.HopCount)
-		if model.MatchingEngineSRT(item, reqSrtItem) {
-			if item.HopCount == reqSrtItem.HopCount {
-				uc.broker.SRTmutex.Lock()
-				uc.broker.SRT.Items[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
-				uc.broker.SRTmutex.Unlock()
-				uc.brokerInfoLogger.GetBrokerInfo(
-					uc.broker,
-				)
-			}
-			if item.HopCount > reqSrtItem.HopCount {
-				// reqSrtItem.HopCount += 1
-				uc.broker.SRTmutex.Lock()
-				uc.broker.SRT.Items[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
-				uc.broker.SRTmutex.Unlock()
-				uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
-
-				isShorter = true
-			}
-			fmt.Println("Same adv already exists.")
-
-			isExist = true
-
-			fmt.Println("============Updated LastHop in SRT============")
-			uc.broker.SRT.PrintSRT()
-		}
-	}
-
-	// 새로운 advertisement인 경우: SRT에 추가
-	if isExist == false {
-		// reqSrtItem.HopCount += 1
-		// srt = append(srt, reqSrtItem)
+	// SRT Handling
+	switch {
+	case !exists:
+		fmt.Println("==Added New Adv to SRT==")
 		uc.broker.SRTmutex.Lock()
 		uc.broker.SRT.AddItem(reqSrtItem)
 		uc.broker.SRTmutex.Unlock()
-		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
-
-		fmt.Println("============Added New Adv to SRT============")
-		uc.broker.SRT.PrintSRT()
+	case exists:
+		switch {
+		case item.HopCount > reqSrtItem.HopCount:
+			// 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
+			uc.broker.SRTmutex.Lock()
+			uc.broker.SRT.ReplaceItem(reqSrtItem)
+			uc.broker.SRTmutex.Unlock()
+			isShorter = true
+		case item.HopCount == reqSrtItem.HopCount:
+			fmt.Println("==Updated LastHop in SRT==")
+			uc.broker.SRTmutex.Lock()
+			item.AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
+			uc.broker.SRTmutex.Unlock()
+		case item.HopCount < reqSrtItem.HopCount:
+			// do nothing
+		}
 	}
-	fmt.Println("Len SRT: ", len(uc.broker.SRT.Items))
 
-	// 새로운 advertisement이거나 더 짧은 hop으로 온 경우, 이웃 브로커들에게 advertisement 전파
-	if isExist == false || isShorter == true {
-
+	// Broadcast Handling
+	switch {
+	case !exists || isShorter:
 		newRequest := &pb.SendMessageRequest{
 			Id:        uc.broker.Id,
 			Ip:        uc.broker.Ip,
@@ -271,18 +259,9 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 			fmt.Printf("%s\n", neighbor.Id)
 		}
 
-		RoutingAdvViaPRTTable := utils.NewFromToTable()
-		RoutingAdvViaPRTTable.SetTitle("Routing Adv via PRT")
-		if len(uc.broker.Brokers) > 0 {
-			RoutingAdvViaPRTTable.PrintTableTitle()
-			RoutingAdvViaPRTTable.PrintSeparatorLine()
-			RoutingAdvViaPRTTable.PrintHeader()
-			RoutingAdvViaPRTTable.PrintSeparatorLine()
-		}
 		for _, neighbor := range uc.broker.Brokers {
 			// 온 방향으로는 전송하지 않음
 			if neighbor.Id == advReq.Id {
-				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Skip", "incoming direction")
 				continue
 			}
 			// 새로운 요청을 이웃에게 전송
@@ -304,14 +283,10 @@ func (uc *brokerUsecase) SendAdvertisement(advReq *model.MessageRequest) error {
 
 			if err != nil {
 				uc.hopLogger.Fatalf("error: %v", err)
-				RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "Error", err.Error())
 				continue
 			}
-			RoutingAdvViaPRTTable.PrintRowFromTo(uc.broker.Id, neighbor.Id, "SendAdv", "")
 		}
-		RoutingAdvViaPRTTable.PrintSeparatorLine()
 	}
-
 	return nil
 }
 
@@ -361,144 +336,135 @@ func (uc *brokerUsecase) SendSubscription(subReq *model.MessageRequest) error {
 		subReq.SenderId,
 	)
 
-	for _, srtItem := range uc.broker.SRT.Items {
-		isExist := false
-
-		// advertisement의 subject와 operator가 subscription의 subject와 operator와 일치하는 경우:
-		if srtItem.Advertisement.Subject == reqPrtItem.Subscription.Subject &&
-			srtItem.Advertisement.Operator == reqPrtItem.Subscription.Operator {
-			advValue, _ := strconv.ParseFloat(srtItem.Advertisement.Value, 64)
-			subValue, _ := strconv.ParseFloat(reqPrtItem.Subscription.Value, 64)
-
-			// advertisement에 subscription이 포함되는 경우:
-			// PRT에 추가하고, 해당 advertisement의 last hop으로 subscription 전달함.
-			if (srtItem.Advertisement.Operator == ">" && advValue >= subValue) ||
-				(srtItem.Advertisement.Operator == ">=" && advValue >= subValue) ||
-				(srtItem.Advertisement.Operator == "<" && advValue <= subValue) ||
-				(srtItem.Advertisement.Operator == "<=" && advValue <= subValue) {
-
-				isSameLastHop := false
-
-				// 새로운 subscription이 아닌 경우 (같은 내용의 subscription이 이미 존재하는 경우):
-				// PRT의 해당 item에 last hop 슬라이스에 없으면 추가, 있으면 추가하지 않음.
-				for index, prtItem := range uc.broker.PRT.Items {
-					if prtItem.Identifier.MessageId == reqPrtItem.Identifier.MessageId {
-						// PRT의 last hop 슬라이스에 주소가 이미 존재하는 경우:
-						// last hop 슬라이스 업데이트하지 않음
-						for _, lastHop := range prtItem.LastHop {
-							// if lastHop.Address == subReq.Address {
-							if lastHop.Id == subReq.Id {
-								isSameLastHop = true
-								isExist = true
-								break
-							}
-						}
-
-						// PRT의 last hop 슬라이스에 주소가 존재하지 않는 경우:
-						// last hop 슬라이스 업데이트함
-						if !isSameLastHop {
-							uc.broker.PRTmutex.Lock()
-							uc.broker.PRT.Items[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
-							uc.broker.PRTmutex.Unlock()
-							uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
-
-							isExist = true
-							break
-						}
+	matchedSrtItems, err := uc.broker.SRT.FindMatchesItems(
+		reqPrtItem.Subscription.Subject,
+		reqPrtItem.Subscription.Operator,
+		reqPrtItem.Subscription.Value,
+	)
+	if !err {
+		return nil
+	}
+	// advertisement의 subject와 operator가 subscription의 subject와 operator와 일치하는 경우:
+	for _, srtItem := range matchedSrtItems {
+		isSameLastHop := false
+		isExistInPRT := false
+		// 새로운 subscription이 아닌 경우 (같은 내용의 subscription이 이미 존재하는 경우):
+		// PRT의 해당 item에 last hop 슬라이스에 없으면 추가, 있으면 추가하지 않음.
+		for index, prtItem := range uc.broker.PRT.Items {
+			if prtItem.Identifier.MessageId == reqPrtItem.Identifier.MessageId {
+				// PRT의 last hop 슬라이스에 주소가 이미 존재하는 경우:
+				// last hop 슬라이스 업데이트하지 않음
+				for _, lastHop := range prtItem.LastHop {
+					// if lastHop.Address == subReq.Address {
+					if lastHop.Id == subReq.Id {
+						isSameLastHop = true
+						isExistInPRT = true
+						break
 					}
 				}
 
-				// 새로운 subscription인 경우:
-				// PRT에 추가
-				if !isExist {
+				// PRT의 last hop 슬라이스에 주소가 존재하지 않는 경우:
+				// last hop 슬라이스 업데이트함
+				if !isSameLastHop {
 					uc.broker.PRTmutex.Lock()
-					uc.broker.PRT.AddItem(reqPrtItem)
+					uc.broker.PRT.Items[index].AddLastHop(subReq.Id, subReq.Ip, subReq.Port, subReq.NodeType)
 					uc.broker.PRTmutex.Unlock()
 					uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
+
+					isExistInPRT = true
+					break
 				}
-
-				// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
-				// (SRT의 last hop을 따라가면서 전달)
-
-				newRequest := &pb.SendMessageRequest{
-					Id:        uc.broker.Id,
-					Ip:        uc.broker.Ip,
-					Port:      uc.broker.Port,
-					Subject:   subReq.Subject,
-					Operator:  subReq.Operator,
-					Value:     subReq.Value,
-					NodeType:  subReq.NodeType,
-					MessageId: subReq.MessageId,
-					SenderId:  subReq.SenderId,
-				}
-
-				// // Show neighboring brokers list
-				// fmt.Println("==Neighboring Brokers==")
-				// for _, neighbor := range uc.broker.Brokers {
-				// 	fmt.Printf("%s\n", neighbor.Id)
-				// }
-
-				// Show lasthop list
-				fmt.Println("==Lasthop Brokers==")
-				for _, lastHop := range srtItem.LastHop {
-					fmt.Printf("%s\n", lastHop.Id)
-				}
-
-				RoutingSubViaSRTTable := utils.NewFromToTable()
-				RoutingSubViaSRTTable.SetTitle("Routing Sub via SRT")
-				for index, lastHop := range srtItem.LastHop {
-					if index == 0 {
-						RoutingSubViaSRTTable.PrintTableTitle()
-						RoutingSubViaSRTTable.PrintSeparatorLine()
-						RoutingSubViaSRTTable.PrintHeader()
-						RoutingSubViaSRTTable.PrintSeparatorLine()
-					}
-					// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
-					// if lastHop.NodeType == constants.PUBLISHER {
-					if lastHop.Id == srtItem.Identifier.SenderId {
-						fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
-						RoutingSubViaSRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
-						break
-					}
-					if subReq.Port == lastHop.Port {
-						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
-						break
-					}
-					// 	for _, publisher := range uc.Publishers {
-					// 		if publisher.ID == lastHop.ID {
-					// 			// RPCNotifyPublisher
-					// 		}
-					// 	}
-
-					// RoutingSubViaSRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
-					// 새로운 요청을 SRT의 last hop 브로커에게 전송
-					_, err := uc.brokerClient.RPCSendSubscription(
-						lastHop.Ip,   //remote broker ip
-						lastHop.Port, //remote broker port
-						newRequest.Id,
-						newRequest.Ip,
-						newRequest.Port,
-						newRequest.Subject,
-						newRequest.Operator,
-						newRequest.Value,
-						constants.BROKER,
-						newRequest.MessageId,
-						newRequest.SenderId,
-						newRequestPerformanceInfo,
-					)
-
-					if err != nil {
-						log.Printf("error: %v", err)
-						RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
-						continue
-					}
-					RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
-				}
-				RoutingSubViaSRTTable.PrintSeparatorLine()
 			}
 		}
-	}
 
+		// 새로운 subscription인 경우:
+		// PRT에 추가
+		if !isExistInPRT {
+			uc.broker.PRTmutex.Lock()
+			uc.broker.PRT.AddItem(reqPrtItem)
+			uc.broker.PRTmutex.Unlock()
+			uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
+		}
+
+		// 해당하는 advertisement를 보낸 publisher에게 도달할 때까지 hop-by-hop으로 전달
+		// (SRT의 last hop을 따라가면서 전달)
+
+		newRequest := &pb.SendMessageRequest{
+			Id:        uc.broker.Id,
+			Ip:        uc.broker.Ip,
+			Port:      uc.broker.Port,
+			Subject:   subReq.Subject,
+			Operator:  subReq.Operator,
+			Value:     subReq.Value,
+			NodeType:  subReq.NodeType,
+			MessageId: subReq.MessageId,
+			SenderId:  subReq.SenderId,
+		}
+
+		// // Show neighboring brokers list
+		// fmt.Println("==Neighboring Brokers==")
+		// for _, neighbor := range uc.broker.Brokers {
+		// 	fmt.Printf("%s\n", neighbor.Id)
+		// }
+
+		// Show lasthop list
+		fmt.Println("==Lasthop Brokers==")
+		for _, lastHop := range srtItem.LastHop {
+			fmt.Printf("%s\n", lastHop.Id)
+		}
+
+		RoutingSubViaSRTTable := utils.NewFromToTable()
+		RoutingSubViaSRTTable.SetTitle("Routing Sub via SRT")
+		for index, lastHop := range srtItem.LastHop {
+			if index == 0 {
+				RoutingSubViaSRTTable.PrintTableTitle()
+				RoutingSubViaSRTTable.PrintSeparatorLine()
+				RoutingSubViaSRTTable.PrintHeader()
+				RoutingSubViaSRTTable.PrintSeparatorLine()
+			}
+			// 해당하는 advertisement를 보낸 publisher에게 도달한 경우: 전달 완료
+			// if lastHop.NodeType == constants.PUBLISHER {
+			if lastHop.Id == srtItem.Identifier.SenderId {
+				fmt.Printf("Subscription reached publisher %s\n", lastHop.Id)
+				RoutingSubViaSRTTable.PrintRowFromTo(srtItem.Identifier.SenderId, lastHop.Id, "Skip", "incoming direction")
+				break
+			}
+			if subReq.Port == lastHop.Port {
+				RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Skip", "same port:"+subReq.Port)
+				break
+			}
+			// 	for _, publisher := range uc.Publishers {
+			// 		if publisher.ID == lastHop.ID {
+			// 			// RPCNotifyPublisher
+			// 		}
+			// 	}
+
+			// RoutingSubViaSRTTable.PrintRow([]string{uc.broker.Id, lastHop.Id})
+			// 새로운 요청을 SRT의 last hop 브로커에게 전송
+			_, err := uc.brokerClient.RPCSendSubscription(
+				lastHop.Ip,   //remote broker ip
+				lastHop.Port, //remote broker port
+				newRequest.Id,
+				newRequest.Ip,
+				newRequest.Port,
+				newRequest.Subject,
+				newRequest.Operator,
+				newRequest.Value,
+				constants.BROKER,
+				newRequest.MessageId,
+				newRequest.SenderId,
+				newRequestPerformanceInfo,
+			)
+
+			if err != nil {
+				log.Printf("error: %v", err)
+				RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "Error", err.Error())
+				continue
+			}
+			RoutingSubViaSRTTable.PrintRowFromTo(uc.broker.Id, lastHop.Id, "SendSub", "")
+		}
+		RoutingSubViaSRTTable.PrintSeparatorLine()
+	}
 	return nil
 }
 

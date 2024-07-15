@@ -100,7 +100,7 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 				break // 채널이 닫혔다면 루프 종료
 			}
 
-			fmt.Println(len(selectedSubjectList))
+			// fmt.Println(len(selectedSubjectList))
 
 			if len(selectedSubjectList) == 0 {
 				continue
