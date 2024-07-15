@@ -85,12 +85,12 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	var totalQueueTime time.Duration
 	var totalServiceTime time.Duration
 	var messageCount int64
-	broker := uc.broker
+	// broker := uc.broker
 	for {
-		message := <-broker.MessageQueue
+		message := <-uc.broker.MessageQueue
 		message.EnserviceTime = time.Now()
 		// time.Sleep(1 * time.Second)
-		if broker.Port == "50003" {
+		if uc.broker.Port == "50003" {
 			time.Sleep(1 * time.Millisecond)
 		} else {
 			time.Sleep(1 * time.Second)
@@ -103,7 +103,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		totalQueueTime += queueTime
 		messageCount++
 		avgQueueTime := totalQueueTime / time.Duration(messageCount)
-		broker.QueueTime = avgQueueTime
+		uc.broker.QueueTime = avgQueueTime
 		// uc.logger.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 		// log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 
@@ -617,21 +617,26 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 		if queueTime+serviceTime == 0 {
 			throughput = 0
 		} else {
-			throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+			// throughput = 1e9 / float64(queueTime+serviceTime) // 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+			throughput = 1 / (queueTime + serviceTime).Seconds()
 		}
 		avgerageInterArrivalTime := broker.AverageInterArrivalTime
 
 		uc.tickLogger.WithFields(logrus.Fields{
-			"Cpu":               cpu,
-			"Memory":            memory,
-			"QueueLength":       queueLength,
-			"QueueTime":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
-			"ServiceTime":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"ResponseTime":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
+			"Cpu":         cpu,
+			"Memory":      memory,
+			"QueueLength": queueLength,
+			// "QueueTime":         fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
+			// "ServiceTime":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			// "ResponseTime":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
+			// "InterArrivalTime":  fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+			"QueueTime":         fmt.Sprintf("%.6f", queueTime.Seconds()),                  // 단위: s, 소수점 아래 6자리
+			"ServiceTime":       fmt.Sprintf("%.6f", serviceTime.Seconds()),                // 단위: s, 소수점 아래 6자리
+			"ResponseTime":      fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()),  // 단위: s, 소수점 아래 6자리
+			"InterArrivalTime":  fmt.Sprintf("%.6f", avgerageInterArrivalTime.Seconds()),   // 단위: s, 소수점 아래 6자리
+			"TotalArrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()), // 단위: s, 소수점 아래 6자리
 			"Throughput":        fmt.Sprintf("%.6f", throughput),
-			"InterArrivalTime":  fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 			"Bottleneck":        uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
-			"TotalArrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()*1000),
 			"MessageCount":      broker.MessageCount,
 		}).Info("Performance Metrics")
 
@@ -679,19 +684,24 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 	if queueTime+serviceTime == 0 {
 		throughput = 0
 	} else {
-		throughput = 1e9 / float64(queueTime+serviceTime) // 초 단위의 값을 얻기 위해서는 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+		// throughput = 1e9 / float64(queueTime+serviceTime) // 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
+		throughput = 1 / (queueTime + serviceTime).Seconds()
 	}
-	interArrivalTime := broker.InterArrivalTime
+	avgerageInterArrivalTime := broker.AverageInterArrivalTime
 
 	performanceInfo := &model.PerformanceInfo{
-		BrokerId:         broker.Id,
-		Cpu:              fmt.Sprintf("%f", cpu),
-		Memory:           fmt.Sprint(memory),
-		QueueLength:      fmt.Sprintf("%d", queueLength),
-		QueueTime:        fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
-		ServiceTime:      fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-		ResponseTime:     fmt.Sprintf("%f", (queueTime+serviceTime).Seconds()*1000),
-		InterArrivalTime: fmt.Sprintf("%f", interArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+		BrokerId:    broker.Id,
+		Cpu:         fmt.Sprintf("%f", cpu),
+		Memory:      fmt.Sprint(memory),
+		QueueLength: fmt.Sprintf("%d", queueLength),
+		// QueueTime:        fmt.Sprintf("%f", queueTime.Seconds()*1000),   // 단위: ms, 소수점 아래 6자리
+		// ServiceTime:      fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+		// ResponseTime:     fmt.Sprintf("%f", (queueTime+serviceTime).Seconds()*1000), // 단위: ms, 소수점 아래 6자리
+		// InterArrivalTime: fmt.Sprintf("%f", interArrivalTime.Seconds()*1000),    // 단위: ms, 소수점 아래 6자리
+		QueueTime:        fmt.Sprintf("%.6f", queueTime.Seconds()),                 // 단위: s, 소수점 아래 6자리
+		ServiceTime:      fmt.Sprintf("%.6f", serviceTime.Seconds()),               // 단위: s, 소수점 아래 6자리
+		ResponseTime:     fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()), // 단위: s, 소수점 아래 6자리
+		InterArrivalTime: fmt.Sprintf("%.6f", avgerageInterArrivalTime.Seconds()),  // 단위: s, 소수점 아래 6자리
 		Throughput:       fmt.Sprintf("%.6f", throughput),
 		// Timestamp:        fmt.Sprint(time.Now().UnixNano()),
 		Timestamp: fmt.Sprint(time.Now()),

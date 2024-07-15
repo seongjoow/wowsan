@@ -266,7 +266,7 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 100
+	publisherCount := 50
 	for i := 0; i < publisherCount; i++ {
 		startPubServers(&pubServerLoop, 60010, "50003")
 	}
@@ -291,7 +291,7 @@ func simulatorRandomPause() {
 		} else {
 			nextAction++
 		}
-		randPercentage := 0.5 + r.Float64()*0.5 // 0.3 + [0, 0.4) -> [0.3, 0.7)
+		randPercentage := 0.3 + r.Float64()*0.4 // 0.3 + [0, 0.4) -> [0.3, 0.7)
 		switch action {
 		case simulator.PAUSE:
 			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
