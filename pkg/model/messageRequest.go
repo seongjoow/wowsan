@@ -25,16 +25,19 @@ type MessageRequest struct {
 }
 
 type PerformanceInfo struct {
-	BrokerId         string
-	Cpu              string
-	Memory           string
-	QueueLength      string
-	QueueTime        string
-	ServiceTime      string
-	ResponseTime     string
-	InterArrivalTime string
-	Throughput       string
-	Timestamp        string
+	BrokerId           string
+	Cpu                string
+	Memory             string
+	QueueLength        string
+	QueueTime          string
+	AverageQueueTime   string
+	ServiceTime        string
+	AverageServiceTime string
+	ResponseTime       string
+	InterArrivalTime   string
+	Throughput         string
+	AverageThroughput  string
+	Timestamp          string
 }
 
 // func Test() {
