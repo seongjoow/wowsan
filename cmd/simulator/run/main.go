@@ -266,7 +266,7 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 1
+	publisherCount := 3
 	for i := 0; i < publisherCount; i++ {
 		startPubServers(&pubServerLoop, 60010, "50003")
 	}
@@ -303,27 +303,27 @@ func simulatorRandomPause() {
 		}
 		// randPercentage := 0.5 + r.Float64()*0.5 // 0.3 + [0, 0.4) -> [0.3, 0.7)
 		//70~100%
-		// randPercentage := 0.7 + r.Float64()*0.2
+		randPercentage := 0.7 + r.Float64()*0.2
 		// 100%
-		randPercentage := 1.0
+		// randPercentage := 1.0
 		switch action {
 		case simulator.PAUSE:
 			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
-			// controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
-			// controlRandomServers(&pubServers1, randPercentage, simulator.PAUSE)
-			// controlRandomServers(&pubServers2, randPercentage, simulator.PAUSE)
-			// controlRandomServers(&pubServers3, randPercentage, simulator.PAUSE)
-			// controlRandomServers(&pubServers4, randPercentage, simulator.PAUSE)
-			// controlRandomServers(&pubServers5, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServers1, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServers2, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServers3, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServers4, randPercentage, simulator.PAUSE)
+			controlRandomServers(&pubServers5, randPercentage, simulator.PAUSE)
 			time.Sleep(pauseRandomInterval)
 		case simulator.RESUME:
 			fmt.Printf("Resuming %f%% paused servers...\n", randPercentage*100)
-			// controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
-			// controlRandomServers(&pubServers1, randPercentage, simulator.RESUME)
-			// controlRandomServers(&pubServers2, randPercentage, simulator.RESUME)
-			// controlRandomServers(&pubServers3, randPercentage, simulator.RESUME)
-			// controlRandomServers(&pubServers4, randPercentage, simulator.RESUME)
-			// controlRandomServers(&pubServers5, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServers1, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServers2, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServers3, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServers4, randPercentage, simulator.RESUME)
+			controlRandomServers(&pubServers5, randPercentage, simulator.RESUME)
 			time.Sleep(resumeRandomInterval)
 			// case simulator.START:
 			// 	if &pubServerLoop.NotStarted == nil {

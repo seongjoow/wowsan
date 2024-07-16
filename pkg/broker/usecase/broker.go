@@ -86,20 +86,26 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	var totalQueueTime time.Duration
 	var totalServiceTime time.Duration
 	var messageCount int64
-	startTime := time.Now()
+	// startTime := time.Now()
 	// broker := uc.broker
 	for {
 		message := <-uc.broker.MessageQueue
 		message.EnserviceTime = time.Now()
+
 		// time.Sleep(1 * time.Second)
-		if uc.broker.Port == "50002" {
-			if time.Since(startTime) > time.Duration(rand.Intn(20)+10)*time.Second {
-				fmt.Println("pause")
-				time.Sleep(time.Duration(rand.Intn(4)+1) * time.Second)
-				startTime = time.Now()
-			} else {
-				time.Sleep(time.Duration(rand.Intn(100)+100) * time.Millisecond)
-			}
+		// if uc.broker.Port == "50002" {
+		// 	if time.Since(startTime) > time.Duration(rand.Intn(20)+10)*time.Second {
+		// 		fmt.Println("pause")
+		// 		time.Sleep(time.Duration(rand.Intn(4)+1) * time.Second)
+		// 		startTime = time.Now()
+		// 	} else {
+		// 		time.Sleep(time.Duration(rand.Intn(100)+100) * time.Millisecond)
+		// 	}
+		// } else {
+		// 	time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
+		// }
+		if uc.broker.Port == "50003" {
+			time.Sleep(time.Duration(rand.Intn(50)+50) * time.Millisecond)
 		} else {
 			time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
 		}
