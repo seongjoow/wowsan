@@ -24,7 +24,9 @@ type Broker struct {
 
 	// 성능 지표 (평균 큐 대기 시간, 평균 서비스 시간, 평균 메시지 도착 간격)
 	QueueTime               time.Duration
+	AverageQueueTime        time.Duration
 	ServiceTime             time.Duration
+	AverageServiceTime      time.Duration
 	LastArrivalTime         time.Time
 	InterArrivalTime        time.Duration
 	AverageInterArrivalTime time.Duration

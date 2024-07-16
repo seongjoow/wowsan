@@ -110,10 +110,11 @@ func (uc *brokerUsecase) DoMessageQueue() {
 
 		// 큐 대기 시간 측정 종료
 		queueTime := time.Since(message.EnqueueTime)
+		uc.broker.QueueTime = queueTime
 		totalQueueTime += queueTime
 		messageCount++
 		avgQueueTime := totalQueueTime / time.Duration(messageCount)
-		uc.broker.QueueTime = avgQueueTime
+		uc.broker.AverageQueueTime = avgQueueTime
 		// uc.logger.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 		// log.Printf("Cumulative Average Queue Waiting Time: %v\n", avgQueueTime)
 
@@ -139,9 +140,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 			// log.Printf("Cumulative Average Message Service Time: %v\n", avgServiceTime)
 		}
 		serviceTime := time.Since(message.EnserviceTime)
+		uc.broker.ServiceTime = serviceTime
 		totalServiceTime += serviceTime
 		avgServiceTime := totalServiceTime / time.Duration(messageCount)
-		uc.broker.ServiceTime = avgServiceTime
+		uc.broker.AverageServiceTime = avgServiceTime
 	}
 }
 
@@ -584,16 +586,20 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 		// 	// 또는 랜덤으로
 		// }
 		queueTime := broker.QueueTime
+		averageQueueTime := broker.AverageQueueTime
 		serviceTime := broker.ServiceTime
+		averageServiceTime := broker.AverageServiceTime
 		responseTime := queueTime + serviceTime
-		var throughput float64
+		var throughput, averageThroughput float64
 		if queueTime+serviceTime == 0 {
 			throughput = 0
+			averageQueueTime = 0
 		} else {
 			// throughput = 1e9 / float64(queueTime+serviceTime) // 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
 			throughput = 1 / (queueTime + serviceTime).Seconds()
+			averageThroughput = 1 / (averageQueueTime + averageServiceTime).Seconds()
 		}
-		avgerageInterArrivalTime := broker.AverageInterArrivalTime
+		averageInterArrivalTime := broker.AverageInterArrivalTime
 
 		uc.tickLogger.WithFields(logrus.Fields{
 			"Cpu":         cpu,
@@ -603,14 +609,17 @@ func (uc *brokerUsecase) PerformanceTickLogger(interval time.Duration) {
 			// "ServiceTime":       fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 			// "ResponseTime":      fmt.Sprintf("%f", responseTime.Seconds()*1000),
 			// "InterArrivalTime":  fmt.Sprintf("%f", avgerageInterArrivalTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
-			"QueueTime":         fmt.Sprintf("%.6f", queueTime.Seconds()),                  // 단위: s, 소수점 아래 6자리
-			"ServiceTime":       fmt.Sprintf("%.6f", serviceTime.Seconds()),                // 단위: s, 소수점 아래 6자리
-			"ResponseTime":      fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()),  // 단위: s, 소수점 아래 6자리
-			"InterArrivalTime":  fmt.Sprintf("%.6f", avgerageInterArrivalTime.Seconds()),   // 단위: s, 소수점 아래 6자리
-			"TotalArrival Time": fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()), // 단위: s, 소수점 아래 6자리
-			"Throughput":        fmt.Sprintf("%.6f", throughput),
-			"Bottleneck":        uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
-			"MessageCount":      broker.MessageCount,
+			"QueueTime":          fmt.Sprintf("%.6f", queueTime.Seconds()),                  // 단위: s, 소수점 아래 6자리
+			"AverageQueueTime":   fmt.Sprintf("%.6f", averageQueueTime.Seconds()),           // 단위: s, 소수점 아래 6자리
+			"ServiceTime":        fmt.Sprintf("%.6f", serviceTime.Seconds()),                // 단위: s, 소수점 아래 6자리
+			"AverageServiceTime": fmt.Sprintf("%.6f", averageServiceTime.Seconds()),         // 단위: s, 소수점 아래 6자리
+			"ResponseTime":       fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()),  // 단위: s, 소수점 아래 6자리
+			"InterArrivalTime":   fmt.Sprintf("%.6f", averageInterArrivalTime.Seconds()),    // 단위: s, 소수점 아래 6자리
+			"TotalArrival Time":  fmt.Sprintf("%f", broker.TotalInterArrivalTime.Seconds()), // 단위: s, 소수점 아래 6자리
+			"Throughput":         fmt.Sprintf("%.6f", throughput),
+			"AverageThroughput":  fmt.Sprintf("%.6f", averageThroughput),
+			"Bottleneck":         uc.CheckBottleneck(&bottleneck, memory, queueLength, responseTime),
+			"MessageCount":       broker.MessageCount,
 		}).Info("Performance Metrics")
 
 		// LogBrokerInfoToLogfile(broker)
@@ -652,15 +661,19 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 	cpu, memory := utils.Utilization()
 	queueLength := len(broker.MessageQueue)
 	queueTime := broker.QueueTime
+	averageQueueTime := broker.AverageQueueTime
 	serviceTime := broker.ServiceTime
-	var throughput float64
+	averageServiceTime := broker.AverageServiceTime
+	var throughput, averageThroughput float64
 	if queueTime+serviceTime == 0 {
 		throughput = 0
+		averageThroughput = 0
 	} else {
 		// throughput = 1e9 / float64(queueTime+serviceTime) // 나노초 값을 초로 변환 (time.Duration은 기본적으로 나노초 단위의 정수값을 가짐)
 		throughput = 1 / (queueTime + serviceTime).Seconds()
+		averageThroughput = 1 / (averageQueueTime + averageServiceTime).Seconds()
 	}
-	avgerageInterArrivalTime := broker.AverageInterArrivalTime
+	averageInterArrivalTime := broker.AverageInterArrivalTime
 
 	performanceInfo := &model.PerformanceInfo{
 		BrokerId:    broker.Id,
@@ -671,11 +684,14 @@ func (uc *brokerUsecase) GetPerformanceInfo() *model.PerformanceInfo {
 		// ServiceTime:      fmt.Sprintf("%f", serviceTime.Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 		// ResponseTime:     fmt.Sprintf("%f", (queueTime+serviceTime).Seconds()*1000), // 단위: ms, 소수점 아래 6자리
 		// InterArrivalTime: fmt.Sprintf("%f", interArrivalTime.Seconds()*1000),    // 단위: ms, 소수점 아래 6자리
-		QueueTime:        fmt.Sprintf("%.6f", queueTime.Seconds()),                 // 단위: s, 소수점 아래 6자리
-		ServiceTime:      fmt.Sprintf("%.6f", serviceTime.Seconds()),               // 단위: s, 소수점 아래 6자리
-		ResponseTime:     fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()), // 단위: s, 소수점 아래 6자리
-		InterArrivalTime: fmt.Sprintf("%.6f", avgerageInterArrivalTime.Seconds()),  // 단위: s, 소수점 아래 6자리
-		Throughput:       fmt.Sprintf("%.6f", throughput),
+		QueueTime:          fmt.Sprintf("%.6f", queueTime.Seconds()),                 // 단위: s, 소수점 아래 6자리
+		AverageQueueTime:   fmt.Sprintf("%.6f", averageQueueTime.Seconds()),          // 단위: s, 소수점 아래 6자리
+		ServiceTime:        fmt.Sprintf("%.6f", serviceTime.Seconds()),               // 단위: s, 소수점 아래 6자리
+		AverageServiceTime: fmt.Sprintf("%.6f", averageServiceTime.Seconds()),        // 단위: s, 소수점 아래 6자리
+		ResponseTime:       fmt.Sprintf("%.6f", (queueTime + serviceTime).Seconds()), // 단위: s, 소수점 아래 6자리
+		InterArrivalTime:   fmt.Sprintf("%.6f", averageInterArrivalTime.Seconds()),   // 단위: s, 소수점 아래 6자리
+		Throughput:         fmt.Sprintf("%.6f", throughput),
+		AverageThroughput:  fmt.Sprintf("%.6f", averageThroughput),
 		// Timestamp:        fmt.Sprint(time.Now().UnixNano()),
 		Timestamp: fmt.Sprint(time.Now()),
 	}
