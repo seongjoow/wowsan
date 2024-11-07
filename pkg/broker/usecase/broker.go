@@ -3,7 +3,9 @@ package usecase
 import (
 	"fmt"
 	"log"
-	"math/rand"
+
+	// "math/rand"
+
 	// "strconv"
 	"time"
 	"wowsan/constants"
@@ -104,10 +106,13 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		// } else {
 		// 	time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
 		// }
+		// service time 설정
 		if uc.broker.Port == "50003" {
-			time.Sleep(time.Duration(rand.Intn(50)+50) * time.Millisecond)
+			// time.Sleep(time.Duration(rand.Intn(50)+50) * time.Millisecond)
+			time.Sleep(time.Duration(800) * time.Millisecond)
 		} else {
-			time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
+			// time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
+			time.Sleep(time.Duration(1000) * time.Millisecond)
 		}
 
 		// time.Sleep(600 * time.Millisecond)
@@ -644,7 +649,9 @@ func (uc *brokerUsecase) CheckBottleneck(bottleneckStatus *bottleneckStatus, mem
 	// 메모리 사용량이 100000000이면서
 	// queue length가 증가하고 response time이 증가하는 상태가 n초 이상 지속되면 병목으로 판단
 	var n time.Duration = 3
-	if queueLength > bottleneckStatus.preQueueLength && responseTime > bottleneckStatus.preResponseTime {
+
+	// if queueLength > bottleneckStatus.preQueueLength && responseTime > bottleneckStatus.preResponseTime {
+	if queueLength >= bottleneckStatus.preQueueLength && responseTime > bottleneckStatus.preResponseTime {
 		if bottleneckStatus.start.IsZero() {
 			bottleneckStatus.start = time.Now()
 		} else {
