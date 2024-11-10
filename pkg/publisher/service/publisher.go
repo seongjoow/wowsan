@@ -1,7 +1,7 @@
 package service
 
 import (
-	_brokerClient "wowsan/pkg/broker/grpc/client"
+	_brokerClient "wowsan/pkg/broker/grpc/client/pool"
 	"wowsan/pkg/model"
 	_publisherUsecase "wowsan/pkg/publisher/usecase"
 )
