@@ -114,13 +114,13 @@ func (l *BrokerInfoLogger) GetBrokerInfo(broker *model.Broker) {
 	}
 
 	itemsSrt := "==SRT==\n"
-	for _, item := range broker.SRT.Items {
-		itemsSrt += fmt.Sprintf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
-		for i := 0; i < len(item.LastHop); i++ {
-			itemsSrt += fmt.Sprintf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
-		}
-		itemsSrt += fmt.Sprintf("----------------------------\n")
-	}
+	// for _, item := range broker.SRT.Items {
+	// 	itemsSrt += fmt.Sprintf("Adv: %s %s %s (%s) | %s\n", item.Advertisement.Subject, item.Advertisement.Operator, item.Advertisement.Value, item.Identifier.MessageId, item.Identifier.SenderId)
+	// 	for i := 0; i < len(item.LastHop); i++ {
+	// 		itemsSrt += fmt.Sprintf("%s | %s | %d \n", item.LastHop[i].Id, item.LastHop[i].NodeType, item.HopCount)
+	// 	}
+	// 	itemsSrt += fmt.Sprintf("----------------------------\n")
+	// }
 
 	itemsPrt := "==PRT==\n"
 	for _, item := range broker.PRT.Items {

@@ -2,136 +2,273 @@ package model
 
 import (
 	"fmt"
+	"github.com/google/btree"
+	"strconv"
 	"wowsan/pkg/broker/utils"
 )
 
+type valueItem struct {
+	item  *SubscriptionRoutingTableItem
+	value float64
+}
+
+func (v valueItem) Less(than btree.Item) bool {
+	return v.value < than.(valueItem).value
+}
+
 type SubscriptionRoutingTable struct {
-	Items []*SubscriptionRoutingTableItem
+	items map[string]map[string]*btree.BTree // map[subject]map[operator]*btree.BTree
 }
 
 func NewSRT() *SubscriptionRoutingTable {
 	return &SubscriptionRoutingTable{
-		Items: make([]*SubscriptionRoutingTableItem, 0),
+		items: make(map[string]map[string]*btree.BTree),
 	}
 }
 
-func (srt *SubscriptionRoutingTable) AddItem(
-	item *SubscriptionRoutingTableItem,
-) {
-	srt.Items = append(srt.Items, item)
-}
-
-func (srt *SubscriptionRoutingTable) GetItem(
-	subject string,
-) *SubscriptionRoutingTableItem {
-	for _, item := range srt.Items {
-		if item.Advertisement.Subject == subject {
-			return item
-		}
-	}
-	return nil
-}
-
-// print srt table
-func (srt *SubscriptionRoutingTable) PrintSRT() {
-	// Define headers and lengths
-	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(port)"}
-	columnLengths := []int{15, 10, 10, 15, 15, 10, 35}
-	// Print the table
-	table := utils.NewTable(columnHeaders, columnLengths)
-	table.SetTitle("SRT")
-	for _, item := range srt.Items {
-		var lastHop string
-		for i, hop := range item.LastHop {
-			if i > 0 {
-				lastHop += ", "
+func (m *SubscriptionRoutingTable) GetItem(subject, operator, value string) (*SubscriptionRoutingTableItem, bool) {
+	fmt.Println("[SRT] Get Item", subject, operator, value)
+	if ops, ok := m.items[subject]; ok {
+		if tree, ok := ops[operator]; ok {
+			valueFloat, _ := strconv.ParseFloat(value, 64)
+			if item := tree.Get(valueItem{value: valueFloat}); item != nil {
+				return item.(valueItem).item, true
 			}
-			lastHop += fmt.Sprintf("%s", hop.Port)
 		}
-		row := []string{
-			item.Advertisement.Subject,
-			item.Advertisement.Operator,
-			item.Advertisement.Value,
-			item.Identifier.MessageId,
-			item.Identifier.SenderId,
-			fmt.Sprintf("%d", item.HopCount),
-			lastHop,
-		}
-		table.AddRow(row)
 	}
-	table.PrintTable()
+	return nil, false
 }
 
-func (srt *SubscriptionRoutingTable) PrintSRTWhereSubject(
-	subject string,
-) {
-	// Define headers and lengths
+func (m *SubscriptionRoutingTable) ReplaceItem(item *SubscriptionRoutingTableItem) {
+	subject := item.Advertisement.Subject
+	operator := item.Advertisement.Operator
+	value := item.Advertisement.Value
+	fmt.Println("[SRT] ReplaceItem", subject, operator, value)
+
+	// Parse the value to float64
+	valueFloat, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		fmt.Printf("Error parsing value %s to float64: %v\n", value, err)
+		return
+	}
+
+	// If the subject map doesn't exist, return
+	if _, ok := m.items[subject]; !ok {
+		fmt.Println("[SRT] Subject map doesn't exist")
+		return
+	}
+
+	// If the operator map doesn't exist for the subject, return
+	if _, ok := m.items[subject][operator]; !ok {
+		fmt.Println("[SRT] Operator map doesn't exist for the subject")
+		return
+	}
+
+	// Add the SubscriptionRoutingTableItem to the B-tree
+	vItem := valueItem{item: item, value: valueFloat}
+
+	// If the SubscriptionRoutingTableItem already exists, replace it
+	if existingItem := m.items[subject][operator].Get(vItem); existingItem != nil {
+		fmt.Println("[SRT] Item already exists, replace it")
+	} else {
+		// If the SubscriptionRoutingTableItem doesn't exist, return
+		fmt.Println("[SRT] Item doesn't exist, return")
+	}
+}
+
+func (m *SubscriptionRoutingTable) AddItem(item *SubscriptionRoutingTableItem) {
+	subject := item.Advertisement.Subject
+	operator := item.Advertisement.Operator
+	value := item.Advertisement.Value
+	fmt.Println("[SRT] Add Item", subject, operator, value)
+
+	// Parse the value to float64
+	valueFloat, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		fmt.Printf("Error parsing value %s to float64: %v\n", value, err)
+		return
+	}
+
+	// If the subject map doesn't exist, create a new one
+	if _, ok := m.items[subject]; !ok {
+		fmt.Println("[SRT] Create new subject map")
+		m.items[subject] = make(map[string]*btree.BTree)
+	}
+
+	// If the operator map doesn't exist for the subject, create a new one
+	if _, ok := m.items[subject][operator]; !ok {
+		fmt.Println("[SRT] Create new operator map")
+		m.items[subject][operator] = btree.New(2) // Degree of 2 for B-tree
+	}
+
+	// Add the SubscriptionRoutingTableItem to the B-tree
+	vItem := valueItem{item: item, value: valueFloat}
+
+	// If the SubscriptionRoutingTableItem already exists, error
+	if existingItem := m.items[subject][operator].Get(vItem); existingItem != nil {
+		fmt.Println("[SRT] Item already exists")
+	} else {
+		// If the SubscriptionRoutingTableItem doesn't exist, insert it
+		fmt.Println("[SRT] Insert new item")
+		m.items[subject][operator].ReplaceOrInsert(vItem)
+	}
+
+}
+
+func (m *SubscriptionRoutingTable) GetValuesBySubjectOperator(subject, operator string) ([]float64, bool) {
+	values := []float64{}
+	if ops, ok := m.items[subject]; ok {
+		if tree, ok := ops[operator]; ok {
+			tree.Ascend(func(i btree.Item) bool {
+				values = append(values, i.(valueItem).value)
+				return true
+			})
+			return values, true
+		}
+	}
+	return nil, false
+}
+
+func (m *SubscriptionRoutingTable) PrintSRT() {
 	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(port)"}
 	columnLengths := []int{15, 10, 10, 15, 15, 10, 35}
-	// Print the table
 	table := utils.NewTable(columnHeaders, columnLengths)
 	table.SetTitle("SRT")
-	for _, item := range srt.Items {
-		if item.Advertisement.Subject == subject {
-			var lastHop string
-			for i, hop := range item.LastHop {
-				if i > 0 {
-					lastHop += ", "
+
+	for subject, ops := range m.items {
+		for operator, tree := range ops {
+			tree.Ascend(func(i btree.Item) bool {
+				vItem := i.(valueItem)
+				item := vItem.item
+				var lastHop string
+				for i, hop := range item.LastHop {
+					if i > 0 {
+						lastHop += ", "
+					}
+					lastHop += fmt.Sprintf("%s", hop.Port)
 				}
-				lastHop += fmt.Sprintf("%s", hop.Port)
-			}
-			row := []string{
-				item.Advertisement.Subject,
-				item.Advertisement.Operator,
-				item.Advertisement.Value,
-				item.Identifier.MessageId,
-				item.Identifier.SenderId,
-				fmt.Sprintf("%d", item.HopCount),
-				lastHop,
-			}
-			table.AddRow(row)
+				row := []string{
+					subject,
+					operator,
+					fmt.Sprintf("%f", vItem.value),
+					item.Identifier.MessageId,
+					item.Identifier.SenderId,
+					fmt.Sprintf("%d", item.HopCount),
+					lastHop,
+				}
+				table.AddRow(row)
+				return true
+			})
 		}
 	}
 	table.PrintTable()
 }
 
-// 새로운 advertisement가 아닌 경우 (같은 내용의 advertisement가 이미 존재하는 경우):
-// 건너온 hop이 더 짧으면 last hop을 추가하고
-// 건너온 hop이 같으면 기존 last hop을 대체함.
-// if item.HopCount >= reqSrtItem.HopCount {
-// 	if item.HopCount == reqSrtItem.HopCount {
-// 		uc.broker.SRTmutex.Lock()
-// 		uc.broker.SRT.Items[index].AddLastHop(advReq.Id, advReq.Ip, advReq.Port, advReq.NodeType)
-// 		uc.broker.SRTmutex.Unlock()
-// 		uc.brokerInfoLogger.GetBrokerInfo(
-// 			uc.broker,
-// 		)
-// 	}
-// 	if item.HopCount > reqSrtItem.HopCount {
-// 		// reqSrtItem.HopCount += 1
-// 		uc.broker.SRTmutex.Lock()
-// 		uc.broker.SRT.Items[index] = reqSrtItem // 슬라이스의 인덱스를 사용하여 요소 직접 업데이트 (item은 uc.SRT의 각 요소에 대한 복사본이라 원본 uc.SRT 슬라이스의 요소가 변경되지 않음)
-// 		uc.broker.SRTmutex.Unlock()
-// 		uc.brokerInfoLogger.GetBrokerInfo(uc.broker)
+func (m *SubscriptionRoutingTable) PrintSRTWhereSubject(subject string) {
+	columnHeaders := []string{"Subject", "Operator", "Value", "MessageId", "SenderId", "HopCount", "[]LastHop(port)"}
+	columnLengths := []int{15, 10, 10, 15, 15, 10, 35}
+	table := utils.NewTable(columnHeaders, columnLengths)
+	table.SetTitle("SRT")
 
-// 		isShorter = true
-// 	}
-// }
-
-func (srt *SubscriptionRoutingTable) UpdateLastHop(
-	reqSrtItem *SubscriptionRoutingTableItem,
-) {
-	for index, item := range srt.Items {
-		if MatchingEngineSRT(item, reqSrtItem) {
-			switch {
-			case item.HopCount == reqSrtItem.HopCount:
-				srt.Items[index].AddLastHop(reqSrtItem.LastHop[0].Id, reqSrtItem.LastHop[0].Ip, reqSrtItem.LastHop[0].Port, reqSrtItem.LastHop[0].NodeType)
-			case item.HopCount > reqSrtItem.HopCount:
-				reqSrtItem.HopCount += 1
-				srt.Items[index] = reqSrtItem
-			case item.HopCount < reqSrtItem.HopCount:
-				return
-			}
+	if ops, ok := m.items[subject]; ok {
+		for operator, tree := range ops {
+			tree.Ascend(func(i btree.Item) bool {
+				vItem := i.(valueItem)
+				item := vItem.item
+				var lastHop string
+				for i, hop := range item.LastHop {
+					if i > 0 {
+						lastHop += ", "
+					}
+					lastHop += fmt.Sprintf("%s", hop.Port)
+				}
+				row := []string{
+					subject,
+					operator,
+					fmt.Sprintf("%f", vItem.value),
+					item.Identifier.MessageId,
+					item.Identifier.SenderId,
+					fmt.Sprintf("%d", item.HopCount),
+					lastHop,
+				}
+				table.AddRow(row)
+				return true
+			})
 		}
 	}
+	table.PrintTable()
+}
+
+func (srt *SubscriptionRoutingTable) UpdateLastHop(reqSrtItem *SubscriptionRoutingTableItem) {
+	subject := reqSrtItem.Advertisement.Subject
+	operator := reqSrtItem.Advertisement.Operator
+	value := reqSrtItem.Advertisement.Value
+	valueFloat, _ := strconv.ParseFloat(value, 64)
+	fmt.Println("UpdateLastHop", subject, operator, value)
+	if item, exists := srt.GetItem(subject, operator, value); exists {
+		switch {
+		case item.HopCount == reqSrtItem.HopCount:
+			fmt.Println("UpdateLastHop: HopCount == reqSrtItem.HopCount, inserting item")
+			item.AddLastHop(reqSrtItem.LastHop[0].Id, reqSrtItem.LastHop[0].Ip, reqSrtItem.LastHop[0].Port, reqSrtItem.LastHop[0].NodeType)
+		case item.HopCount > reqSrtItem.HopCount:
+			fmt.Println("UpdateLastHop: HopCount > reqSrtItem.HopCount, replacing item")
+			reqSrtItem.HopCount += 1
+			srt.items[subject][operator].ReplaceOrInsert(valueItem{item: reqSrtItem, value: valueFloat})
+		case item.HopCount < reqSrtItem.HopCount:
+			return
+		}
+	}
+}
+
+func (m *SubscriptionRoutingTable) FindMatchesItems(subject, operator, value string) ([]*SubscriptionRoutingTableItem, bool) {
+	fmt.Println("FindMatchesItems", subject, operator, value)
+	matches := []*SubscriptionRoutingTableItem{}
+	subValue, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		fmt.Printf("Error parsing value %s to float64: %v\n", value, err)
+		return nil, false
+	}
+
+	if ops, exists := m.items[subject]; exists {
+		if tree, exists := ops[operator]; exists {
+			switch operator {
+			case ">":
+				tree.AscendGreaterOrEqual(valueItem{value: subValue}, func(i btree.Item) bool {
+					item := i.(valueItem)
+					if item.value >= subValue {
+						matches = append(matches, item.item)
+					}
+					return true
+				})
+			case ">=":
+				tree.AscendGreaterOrEqual(valueItem{value: subValue}, func(i btree.Item) bool {
+					item := i.(valueItem)
+					if item.value >= subValue {
+						matches = append(matches, item.item)
+					}
+					return true
+				})
+			case "<":
+				tree.DescendLessOrEqual(valueItem{value: subValue}, func(i btree.Item) bool {
+					item := i.(valueItem)
+					if item.value <= subValue {
+						matches = append(matches, item.item)
+					}
+					return true
+				})
+			case "<=":
+				tree.DescendLessOrEqual(valueItem{value: subValue}, func(i btree.Item) bool {
+					item := i.(valueItem)
+					if item.value <= subValue {
+						matches = append(matches, item.item)
+					}
+					return true
+				})
+			}
+
+			fmt.Printf("Found %d matches for subject %s, operator %s, value %s\n", len(matches), subject, operator, value)
+			return matches, len(matches) > 0
+		}
+	}
+	return nil, false
 }
