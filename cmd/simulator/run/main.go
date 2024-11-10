@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"sync"
 	"time"
-	"wowsan/constants"
 	"wowsan/pkg/simulator"
 )
 
@@ -248,29 +247,28 @@ func startPubServers(pubServers *PubServers, pubStartPort int, brokerPort string
 
 func simulatorRandomPause() {
 	// new pub server
-	// pubServers1 := NewPubServers()
-	// pubServers2 := NewPubServers()
+	pubServers1 := NewPubServers()
+	pubServers2 := NewPubServers()
 	pubServers3 := NewPubServers()
-	// pubServers4 := NewPubServers()
-	// pubServers5 := NewPubServers()
+	pubServers4 := NewPubServers()
+	pubServers5 := NewPubServers()
 	pubServerLoop := NewPubServers()
 
-	// startPubServers(&pubServers1, 60001, "50001") //broker 1
-	// startPubServers(&pubServers2, 60002, "50001") //broker 1
+	startPubServers(&pubServers1, 60001, "50001") //broker 1
+	startPubServers(&pubServers2, 60002, "50001") //broker 1
 	startPubServers(&pubServers3, 60003, "50003") //broker 3
-	// startPubServers(&pubServers4, 60004, "50004") //broker 4
-	// startPubServers(&pubServers5, 60005, "50005") //broker 5
+	startPubServers(&pubServers4, 60004, "50004") //broker 4
+	startPubServers(&pubServers5, 60005, "50005") //broker 5
 
-	// controlAllServers(&pubServers1, simulator.START)
-	// controlAllServers(&pubServers2, simulator.START)
+	controlAllServers(&pubServers1, simulator.START)
+	controlAllServers(&pubServers2, simulator.START)
 	controlAllServers(&pubServers3, simulator.START)
-	// controlAllServers(&pubServers4, simulator.START)
-	// controlAllServers(&pubServers5, simulator.START)
+	controlAllServers(&pubServers4, simulator.START)
+	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 30
+	publisherCount := 10
 	for i := 0; i < publisherCount; i++ {
 		startPubServers(&pubServerLoop, 60010, "50003")
-		time.Sleep(1 * time.Second)
 	}
 	controlAllServers(&pubServerLoop, simulator.START)
 
@@ -280,21 +278,18 @@ func simulatorRandomPause() {
 	// actions := []string{simulator.START, simulator.PAUSE, simulator.RESUME, simulator.PAUSE}
 	actions := []string{simulator.PAUSE, simulator.RESUME}
 	nextAction := 0
-	level := 2
 	// r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	// time.Sleep(1 * time.Minute)
-	time.Sleep(constants.PublisherTimePauseTime[0] + constants.PublisherTimePauseTime[1] + constants.DefaultSleepTime)
 
 	for range ticker.C {
 		// randomInterval := time.Duration(r.Intn(3)+1) * time.Minute
-		// randomInterval := time.Duration(5) * time.Minute
+		randomInterval := time.Duration(5) * time.Minute
+		time.Sleep(randomInterval)
+
 		if time.Now().After(pubCloseTime) {
 			break
 		}
 		// action := actions[nextAction] // 0: start, 1: pause, 2: resume, 3: pause
 		action := actions[nextAction] // 0: pause, 1: resume
-		// pauseTime := time.Duration(10) * time.Minute
-		// resumeTime := time.Duration(1*level) * time.Minute
 		if nextAction == len(actions)-1 {
 			nextAction = 0
 		} else {
@@ -336,19 +331,6 @@ func simulatorRandomPause() {
 			// 		controlRandomServers(&pubServerLoop, randPercentage, simulator.START)
 			// 	}
 		}
-		time.Sleep(constants.PublisherTimePauseTime[level])
-		if level+1 >= len(constants.PublisherTimePauseTime) {
-			level = 0
-		} else {
-			level++
-		}
-
-		// if action == simulator.PAUSE {
-		// 	time.Sleep(pauseTime)
-		// 	level++
-		// } else if action == simulator.RESUME {
-		// 	time.Sleep(resumeTime)
-		// }
 	}
 }
 
