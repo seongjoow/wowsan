@@ -85,15 +85,42 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	var totalQueueTime time.Duration
 	var totalServiceTime time.Duration
 	var messageCount int64
-	// broker := uc.broker
+	var startCount int = -1 // if startCount == -1, use default sleep time
+
+	doMessageStart := time.Now()
+
 	for {
+		if startCount == -1 {
+			if time.Since(doMessageStart) > constants.DefaultSleepTime {
+				startCount++
+				doMessageStart = time.Now()
+			}
+		} else {
+			if time.Since(doMessageStart) > constants.DoMessageChangeSleepTime[startCount] {
+				startCount++
+				doMessageStart = time.Now()
+			}
+		}
+
+		if startCount >= len(constants.DoMessageChangeSleepTime) {
+			startCount = 0
+		}
+
 		message := <-uc.broker.MessageQueue
 		message.EnserviceTime = time.Now()
 		// time.Sleep(1 * time.Second)
 		if uc.broker.Port == "50003" {
-			time.Sleep(1 * time.Millisecond)
+			// time.Sleep(100 * time.Millisecond)
+			time.Sleep(constants.DefaultBroker3MessageServiceSleepTime)
+		} else if uc.broker.Port == "50002" {
+			if startCount == -1 {
+				time.Sleep(constants.DefaultMessageServiceSleepTime)
+			} else {
+				time.Sleep(constants.MessageServiceSleepTime[startCount])
+			}
+
 		} else {
-			time.Sleep(1 * time.Second)
+			time.Sleep(constants.DefaultMessageServiceSleepTime)
 		}
 		// 프로그램 종료 여부를 판단하기 위해 메시지 처리 시작 시간을 기록
 		uc.broker.Close = time.Now()
