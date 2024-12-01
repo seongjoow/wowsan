@@ -2,7 +2,7 @@ package simulator
 
 import (
 	"fmt"
-	//"math/rand"
+	"math/rand"
 	"time"
 
 	publisher "wowsan/pkg/publisher/service"
@@ -15,13 +15,14 @@ const (
 	RESUME = "resume"
 )
 
+func getInterval(lambda float64) time.Duration {
+	return time.Duration(lambda * float64(time.Second))
+}
+
 // getExpInterval 함수는 지수 분포를 사용하여 다음 호출까지의 대기 시간을 반환함
 func getExpInterval(lambda float64) time.Duration {
-	// expRandom := rand.ExpFloat64() / lambda
-	// return time.Duration(expRandom * float64(time.Second))
-
-	// format the lambda to seconds
-	return time.Duration(lambda * float64(time.Second))
+	expRandom := rand.ExpFloat64() / lambda
+	return time.Duration(expRandom * float64(time.Second))
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
@@ -43,6 +44,13 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 	go func() {
 		for time.Now().Before(advEnd) {
 			// fmt.Printf("len of controlChan:%d [from %s]\n", len(advControlChan), publisherPort)
+			var interval time.Duration
+			if brokerPort == "50004" {
+				interval = getInterval(advLambda)
+			} else {
+				interval = getExpInterval(advLambda)
+			}
+
 			select {
 			case cmd := <-advControlChan:
 				fmt.Printf("Advertisement received command: %s\n", cmd)
@@ -57,7 +65,7 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 				} else if cmd == START {
 					runnimg = true
 				}
-			case <-time.After(getExpInterval(advLambda)):
+			case <-time.After(interval):
 				if !runnimg {
 					continue
 				}
@@ -65,11 +73,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 				fmt.Printf("Publishing...[from %s to %s]\n", publisherPort, brokerPort)
 				subject, operator, value, newSelectedSubjectList := AdvPredicateGenerator(subjectList)
 
+				// // 메세지 전달 함수 호출
+				publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
+
 				// 채널을 통해 리스트 전송
 				subjectListChannel <- newSelectedSubjectList
 
-				// // 메세지 전달 함수 호출
-				publisherService.PublisherUsecase.Adv(subject, operator, value, brokerIp, brokerPort)
 			}
 		}
 
@@ -108,7 +117,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 
 			subject, operator, value := PubPredicateGenerator(selectedSubjectList)
 
-			interval := getExpInterval(pubLambda)
+			var interval time.Duration
+			if brokerPort == "50004" {
+				interval = getInterval(pubLambda)
+			} else {
+				interval = getExpInterval(pubLambda)
+			}
 			time.Sleep(interval)
 
 			// 메세지 전달 함수 호출

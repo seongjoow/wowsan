@@ -219,7 +219,7 @@ func (bc *brokerClient) rpcConnectTo(ip string) (pb.BrokerServiceClient, *grpc.C
 	// Check if the connection exists in the pool
 	conn, err := bc.connPool.GetConnection(ip)
 	if err != nil {
-		bc.log.Infof("Connection for %s not found, attempting to create a new one with retry.", ip)
+		// bc.log.Infof("Connection for %s not found, attempting to create a new one with retry.", ip)
 
 		// if connection doesn't exist, add it to the pool
 		_, err = bc.RetryCallback(func() (interface{}, error) {

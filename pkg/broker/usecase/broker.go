@@ -91,21 +91,22 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	var startCount int = -1 // if startCount == -1, use default sleep time
 
 	doMessageStart := time.Now()
+	config, _ := constants.GetConfig("case2")
 
 	for {
 		if startCount == -1 {
-			if time.Since(doMessageStart) > constants.DefaultSleepTime {
+			if time.Since(doMessageStart) > config.DefaultSleepTime {
 				startCount++
 				doMessageStart = time.Now()
 			}
 		} else {
-			if time.Since(doMessageStart) > constants.DoMessageChangeSleepTime[startCount] {
+			if time.Since(doMessageStart) > config.DoMessageChangeSleepTime[startCount] {
 				startCount++
 				doMessageStart = time.Now()
 			}
 		}
 
-		if startCount >= len(constants.DoMessageChangeSleepTime) {
+		if startCount >= len(config.DoMessageChangeSleepTime) {
 			startCount = 0
 		}
 
@@ -125,18 +126,18 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		// 	time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
 		// }
 		// service time 설정
-		if uc.broker.Port == "50003" {
+		if uc.broker.Port == "50004" || uc.broker.Port == "50005" {
 			// time.Sleep(100 * time.Millisecond)
-			time.Sleep(constants.DefaultBroker3MessageServiceSleepTime)
-		} else if uc.broker.Port == "50002" {
+			time.Sleep(config.DefaultBroker3MessageServiceSleepTime)
+		} else if uc.broker.Port == "50003" {
 			if startCount == -1 {
-				time.Sleep(constants.DefaultMessageServiceSleepTime)
+				time.Sleep(config.DefaultMessageServiceSleepTime)
 			} else {
-				time.Sleep(constants.MessageServiceSleepTime[startCount])
+				time.Sleep(config.MessageServiceSleepTime[startCount])
 			}
 
 		} else {
-			time.Sleep(constants.DefaultMessageServiceSleepTime)
+			time.Sleep(config.DefaultMessageServiceSleepTime)
 		}
 
 		// time.Sleep(600 * time.Millisecond)
