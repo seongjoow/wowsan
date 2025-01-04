@@ -45,11 +45,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 		for time.Now().Before(advEnd) {
 			// fmt.Printf("len of controlChan:%d [from %s]\n", len(advControlChan), publisherPort)
 			var interval time.Duration
-			if brokerPort == "50004" {
-				interval = getInterval(advLambda)
-			} else {
-				interval = getExpInterval(advLambda)
-			}
+			// if brokerPort == "50005" {
+			//	interval = getInterval(advLambda)
+			// } else {
+			// 	interval = getExpInterval(advLambda)
+			//}
+			interval = getExpInterval(advLambda)
 
 			select {
 			case cmd := <-advControlChan:
@@ -118,11 +119,12 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 			subject, operator, value := PubPredicateGenerator(selectedSubjectList)
 
 			var interval time.Duration
-			if brokerPort == "50004" {
-				interval = getInterval(pubLambda)
-			} else {
-				interval = getExpInterval(pubLambda)
-			}
+			//if brokerPort == "50004" {
+			//	interval = getInterval(pubLambda)
+			//} else {
+			//	interval = getExpInterval(pubLambda)
+			//}
+			interval = getExpInterval(advLambda)
 			time.Sleep(interval)
 
 			// 메세지 전달 함수 호출

@@ -4,7 +4,7 @@ setlocal enabledelayedexpansion
 SET "TICK_DIR_NAME=./log/tickLogger/"
 SET "HOP_DIR_NAME=./log/hopLogger/"
 SET "MAX_INDEX=0"
-SET "RUN=.\cmd\broker\run\case2\main.go"
+SET "RUN=.\cmd\broker\run\unitcase\main.go"
 SET "BROKER_START=50001"
 SET "BROKER_END=50005"
 

@@ -31,9 +31,9 @@ func NewPubServers() PubServers {
 		Duration:        120 * 60,
 		Mu:              sync.Mutex{},
 		Start:           time.Now(),
-		AdvDuration:     120 * 60, // 1 hour
-		AdvLambda:       0.1,      // 2 seconds
-		PubLambda:       0.1,      // 2 seconds
+		AdvDuration:     120 * 60, // 2 hour
+		AdvLambda:       0.1,      // default 초당 평균 횟수
+		PubLambda:       0.1,      // default 초당 평균 횟수
 		AdvControlChans: []chan string{},
 		PubControlChan:  make(chan string, 10),
 		NotStarted:      []chan string{},
@@ -161,12 +161,12 @@ func simulatorRandomPause() {
 	pubServers3 := NewPubServers()
 	pubServers4 := NewPubServers()
 	pubServers5 := NewPubServers()
-	pubServerLoop := NewPubServers()
+	// pubServerLoop := NewPubServers()
 
-	pubServers5.AdvLambda = 4.5
-	pubServers5.PubLambda = 2
-	pubServerLoop.AdvLambda = 4.5
-	pubServerLoop.PubLambda = 2
+	pubServers5.AdvLambda = 2
+	pubServers5.PubLambda = 3
+	// pubServerLoop.AdvLambda = 3
+	// pubServerLoop.PubLambda = 3
 
 	startPubServers(&pubServers1, 60001, "50001") //broker 1
 	startPubServers(&pubServers2, 60002, "50001") //broker 1
@@ -180,12 +180,12 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 30
-	for i := 0; i < publisherCount; i++ {
-		startPubServers(&pubServerLoop, 60010, "50005")
-		time.Sleep(1 * time.Second)
-	}
-	controlAllServers(&pubServerLoop, simulator.START)
+	// publisherCount := 30
+	//  i := 0; i < publisherCount; i++ {
+	// 	startPubServers(&pubServerLoop, 60010, "50005")
+	// 	time.Sleep(1 * time.Second)
+	// }
+	// controlAllServers(&pubServerLoop, simulator.START)
 
 	// for while to random pause, start, and resume until pubCloseTime
 	pubCloseTime := time.Now().Add(150 * time.Minute)
@@ -203,22 +203,22 @@ func simulatorRandomPause() {
 		if time.Now().After(pubCloseTime) {
 			break
 		}
-		action := actions[nextAction] // 0: pause, 1: resume
+		// action := actions[nextAction] // 0: pause, 1: resume
 		if nextAction == len(actions)-1 {
 			nextAction = 0
 		} else {
 			nextAction++
 		}
 		// 100%
-		randPercentage := 1.0
-		switch action {
-		case simulator.PAUSE:
-			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
-			controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
-		case simulator.RESUME:
-			fmt.Printf("Resuming %f%% paused servers...\n", randPercentage*100)
-			controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
-		}
+		// randPercentage := 1.0
+		// switch action {
+		// case simulator.PAUSE:
+		// 	fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
+		// 	controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
+		// case simulator.RESUME:
+		// 	fmt.Printf("Resuming %f%% paused servers...\n", randPercentage*100)
+		// 	controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
+		// }
 		time.Sleep(config.PublisherTimePauseTime[level])
 		if level+1 >= len(config.PublisherTimePauseTime) {
 			level = 0

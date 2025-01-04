@@ -1,3 +1,5 @@
+// 다른 브로커에 클라이언트 없는 환경의 시뮬레이션
+
 package main
 
 import (

@@ -126,10 +126,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		// 	time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
 		// }
 		// service time 설정
-		if uc.broker.Port == "50004" || uc.broker.Port == "50005" {
+		if uc.broker.Port == "50003" || uc.broker.Port == "50004" {
 			// time.Sleep(100 * time.Millisecond)
 			time.Sleep(config.DefaultBroker3MessageServiceSleepTime)
-		} else if uc.broker.Port == "50003" {
+		} else if uc.broker.Port == "50005" {
 			if startCount == -1 {
 				time.Sleep(config.DefaultMessageServiceSleepTime)
 			} else {

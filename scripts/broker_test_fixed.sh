@@ -6,7 +6,7 @@ set -e
 TICK_DIR_NAME="./log/tickLogger/"
 HOP_DIR_NAME="./log/hopLogger/"
 MAX_INDEX=0
-RUN="./cmd/broker/run/main.go"
+RUN="./cmd/broker/run/unitcase/main.go"
 BROKER_START=50001
 BROKER_END=50005
 

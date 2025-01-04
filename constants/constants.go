@@ -38,9 +38,10 @@ var configs = map[string]MessageServiceConfig{
 		DefaultSleepTime:                      3 * time.Minute,
 		DefaultMessageServiceSleepTime:        300 * time.Millisecond,
 		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
-		MessageServiceSleepTime:               []time.Duration{5 * time.Second, 100 * time.Millisecond, 5 * time.Second, 300 * time.Millisecond, 5 * time.Second, 200 * time.Millisecond, 5 * time.Second, 300 * time.Millisecond, 5 * time.Second, 200 * time.Millisecond},
-		DoMessageChangeSleepTime:              []time.Duration{1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 10 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
-		PublisherTimePauseTime:                []time.Duration{1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 10 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
+		// stable, unstable, stable, unstable, ...
+		MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond},
+		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
+		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
 	},
 	"case3": {
 		DefaultSleepTime:                      3 * time.Minute,
@@ -56,7 +57,7 @@ var configs = map[string]MessageServiceConfig{
 func GetConfig(key string) (MessageServiceConfig, bool) {
 	config, exists := configs[key]
 	if !exists {
-		config = configs["case1"]
+		config = configs["case2"]
 	}
 	return config, exists
 }

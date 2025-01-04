@@ -1,6 +1,6 @@
 module wowsan
 
-go 1.21.4
+go 1.23
 
 require (
 	github.com/satori/go.uuid v1.2.0
