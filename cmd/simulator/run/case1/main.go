@@ -161,12 +161,12 @@ func simulatorRandomPause() {
 	pubServers3 := NewPubServers()
 	pubServers4 := NewPubServers()
 	pubServers5 := NewPubServers()
-	pubServerLoop := NewPubServers()
+	// pubServerLoop := NewPubServers()
 
-	pubServers4.AdvLambda = 4.5
-	pubServers4.PubLambda = 2
-	pubServerLoop.AdvLambda = 4.5
-	pubServerLoop.PubLambda = 2
+	pubServers4.AdvLambda = 2
+	pubServers4.PubLambda = 3
+	// pubServerLoop.AdvLambda = 4.5
+	// pubServerLoop.PubLambda = 2
 
 	startPubServers(&pubServers1, 60001, "50001") //broker 1
 	startPubServers(&pubServers2, 60002, "50001") //broker 1
@@ -180,12 +180,12 @@ func simulatorRandomPause() {
 	controlAllServers(&pubServers4, simulator.START)
 	controlAllServers(&pubServers5, simulator.START)
 
-	publisherCount := 30
-	for i := 0; i < publisherCount; i++ {
-		startPubServers(&pubServerLoop, 60010, "50004")
-		time.Sleep(1 * time.Second)
-	}
-	controlAllServers(&pubServerLoop, simulator.START)
+	// publisherCount := 30
+	// for i := 0; i < publisherCount; i++ {
+	// 	startPubServers(&pubServerLoop, 60010, "50004")
+	// 	time.Sleep(1 * time.Second)
+	// }
+	// controlAllServers(&pubServerLoop, simulator.START)
 
 	// for while to random pause, start, and resume until pubCloseTime
 	pubCloseTime := time.Now().Add(150 * time.Minute)
@@ -203,24 +203,24 @@ func simulatorRandomPause() {
 		if time.Now().After(pubCloseTime) {
 			break
 		}
-		action := actions[nextAction] // 0: pause, 1: resume
+		// action := actions[nextAction] // 0: pause, 1: resume
 		if nextAction == len(actions)-1 {
 			nextAction = 0
 		} else {
 			nextAction++
 		}
 		// 100%
-		randPercentage := 1.0
-		switch action {
-		case simulator.PAUSE:
-			fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
-			controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
-			controlRandomServers(&pubServers4, randPercentage, simulator.PAUSE)
-		case simulator.RESUME:
-			fmt.Printf("Resuming %f%% paused servers...\n", randPercentage*100)
-			controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
-			controlRandomServers(&pubServers4, randPercentage, simulator.RESUME)
-		}
+		// randPercentage := 1.0
+		// switch action {
+		// case simulator.PAUSE:
+		// 	fmt.Printf("Pausing %f%% of running servers...\n", randPercentage*100)
+		// 	// controlRandomServers(&pubServerLoop, randPercentage, simulator.PAUSE)
+		// 	controlRandomServers(&pubServers4, randPercentage, simulator.PAUSE)
+		// case simulator.RESUME:
+		// 	fmt.Printf("Resuming %f%% paused servers...\n", randPercentage*100)
+		// 	// controlRandomServers(&pubServerLoop, randPercentage, simulator.RESUME)
+		// 	controlRandomServers(&pubServers4, randPercentage, simulator.RESUME)
+		// }
 		time.Sleep(config.PublisherTimePauseTime[level])
 		if level+1 >= len(config.PublisherTimePauseTime) {
 			level = 0

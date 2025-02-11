@@ -30,9 +30,10 @@ var configs = map[string]MessageServiceConfig{
 		DefaultSleepTime:                      3 * time.Minute,
 		DefaultMessageServiceSleepTime:        300 * time.Millisecond,
 		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
-		MessageServiceSleepTime:               []time.Duration{5 * time.Second, 100 * time.Millisecond, 5 * time.Second, 300 * time.Millisecond, 5 * time.Second, 200 * time.Millisecond, 5 * time.Second, 300 * time.Millisecond, 5 * time.Second, 200 * time.Millisecond},
-		DoMessageChangeSleepTime:              []time.Duration{1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 10 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
-		PublisherTimePauseTime:                []time.Duration{1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 10 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
+		// stable, unstable, stable, unstable, ...
+		MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond},
+		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
+		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 	},
 	"case2": {
 		DefaultSleepTime:                      3 * time.Minute,
@@ -40,18 +41,19 @@ var configs = map[string]MessageServiceConfig{
 		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
 		// stable, unstable, stable, unstable, ...
 		MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond},
-		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
-		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
+		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
+		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 	},
-	"case3": {
-		DefaultSleepTime:                      3 * time.Minute,
-		DefaultMessageServiceSleepTime:        5 * time.Second,
-		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
-		MessageServiceSleepTime:               []time.Duration{100 * time.Millisecond, 500 * time.Millisecond, 100 * time.Millisecond, 1000 * time.Millisecond, 100 * time.Millisecond, 1500 * time.Millisecond, 100 * time.Millisecond, 2000 * time.Millisecond, 100 * time.Millisecond, 2500 * time.Millisecond},
-		DoMessageChangeSleepTime:              []time.Duration{1 * time.Minute, 15 * time.Minute, 2 * time.Minute, 10 * time.Minute, 3 * time.Minute, 15 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
-		PublisherTimePauseTime:                []time.Duration{1 * time.Minute, 15 * time.Minute, 2 * time.Minute, 10 * time.Minute, 3 * time.Minute, 15 * time.Minute, 5 * time.Minute, 10 * time.Minute, 3 * time.Minute, 5 * time.Minute},
-	},
-	"case4": {},
+	// "case3": {
+	// 	DefaultSleepTime:                      3 * time.Minute,
+	// 	DefaultMessageServiceSleepTime:        5 * time.Second,
+	// 	DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
+	// 	// stable, unstable, stable, unstable, ...
+	// 	MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond},
+	// 	DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
+	// 	PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
+	// },
+	// "case4": {},
 }
 
 func GetConfig(key string) (MessageServiceConfig, bool) {
