@@ -91,7 +91,7 @@ func (uc *brokerUsecase) DoMessageQueue() {
 	var startCount int = -1 // if startCount == -1, use default sleep time
 
 	doMessageStart := time.Now()
-	config, _ := constants.GetConfig("case2") // case1 또는 case2 지정하기!!!!!!!!!!!!!!!!!!!!
+	config, _ := constants.GetConfig("case3") // case1 또는 case2 지정하기!!!!!!!!!!!!!!!!!!!!
 
 	for {
 		if startCount == -1 {
@@ -126,10 +126,10 @@ func (uc *brokerUsecase) DoMessageQueue() {
 		// 	time.Sleep(time.Duration(rand.Intn(200)+200) * time.Millisecond)
 		// }
 		// service time 설정
-		if uc.broker.Port == "50003" || uc.broker.Port == "50004" { // 정상 브로커 지정하기!!!!!!!!!!!!!!!!!!!!
+		if uc.broker.Port == "50003" || uc.broker.Port == "50005" { // 정상 브로커 지정하기!!!!!!!!!!!!!!!!!!!!
 			// time.Sleep(100 * time.Millisecond)
 			time.Sleep(config.DefaultBroker3MessageServiceSleepTime)
-		} else if uc.broker.Port == "50005" { // 성능 저하 브로커 지정하기!!!!!!!!!!!!!!!!!!!!
+		} else if uc.broker.Port == "50004" { // 성능 저하 브로커 지정하기!!!!!!!!!!!!!!!!!!!!
 			if startCount == -1 {
 				time.Sleep(config.DefaultMessageServiceSleepTime)
 			} else {

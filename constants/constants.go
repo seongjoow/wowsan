@@ -26,7 +26,7 @@ type MessageServiceConfig struct {
 }
 
 var configs = map[string]MessageServiceConfig{
-	"case1": {
+	"case1": { // 인접노드에서 drop
 		DefaultSleepTime:                      3 * time.Minute,
 		DefaultMessageServiceSleepTime:        300 * time.Millisecond,
 		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
@@ -35,7 +35,7 @@ var configs = map[string]MessageServiceConfig{
 		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 	},
-	"case2": {
+	"case2": { // 비인접노드에서 drop
 		DefaultSleepTime:                      3 * time.Minute,
 		DefaultMessageServiceSleepTime:        300 * time.Millisecond,
 		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
@@ -44,22 +44,24 @@ var configs = map[string]MessageServiceConfig{
 		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 3 * time.Minute},
 	},
-	// "case3": {
-	// 	DefaultSleepTime:                      3 * time.Minute,
-	// 	DefaultMessageServiceSleepTime:        5 * time.Second,
-	// 	DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
-	// 	// stable, unstable, stable, unstable, ...
-	// 	MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond, 200 * time.Millisecond, 500 * time.Millisecond},
-	// 	DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
-	// 	PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute, 5 * time.Minute, 5 * time.Minute, 5 * time.Minute},
+
+	"case3": { // 인접노드에서 spike
+		DefaultSleepTime:                      3 * time.Minute,
+		DefaultMessageServiceSleepTime:        300 * time.Millisecond,
+		DefaultBroker3MessageServiceSleepTime: 100 * time.Millisecond,
+		// stable, unstable, stable, unstable, ...
+		MessageServiceSleepTime:  []time.Duration{200 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond, 100 * time.Millisecond},
+		DoMessageChangeSleepTime: []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute},
+		PublisherTimePauseTime:   []time.Duration{5 * time.Minute, 1 * time.Minute, 5 * time.Minute, 2 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 3 * time.Minute, 5 * time.Minute, 4 * time.Minute},
+	},
+	// "case4": { //비인접노드에서 drop
 	// },
-	// "case4": {},
 }
 
 func GetConfig(key string) (MessageServiceConfig, bool) {
 	config, exists := configs[key]
 	if !exists {
-		config = configs["case2"]
+		config = configs["case3"]
 	}
 	return config, exists
 }

@@ -26,12 +26,21 @@ func getExpInterval(lambda float64) time.Duration {
 }
 
 // runSimulation 함수는 주어진 시간 동안 시뮬레이션을 실행함
-func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string, advControlChan, pubControlChan chan string) {
+func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambda, pubLambda float64, lambdaChan chan float64, brokerIp, brokerPort, publisherIp, publisherPort string, subjectList []string, advControlChan, pubControlChan chan string) {
 	publisherService := publisher.NewPublisherService(publisherIp, publisherPort)
 
 	start := time.Now()
 	advEnd := start.Add(time.Duration(advDurationSeconds) * time.Second)
 	pubEnd := start.Add(time.Duration(pubDurationSeconds) * time.Second)
+
+	// lambda 값 관리를 위한 변수와 고루틴
+	var currentLambda float64 = pubLambda
+	go func() {
+		for newLambda := range lambdaChan {
+			currentLambda = newLambda
+			fmt.Printf("Received new lambda value: %f\n", newLambda)
+		}
+	}()
 
 	// subject := ""
 	// operator := ""
@@ -124,7 +133,8 @@ func RunPublisherSimulation(advDurationSeconds, pubDurationSeconds int, advLambd
 			//} else {
 			//	interval = getExpInterval(pubLambda)
 			//}
-			interval = getExpInterval(advLambda)
+			interval = getExpInterval(currentLambda)
+			fmt.Printf("Using lambda value: %f for port: %s\n", currentLambda, publisherPort)
 			time.Sleep(interval)
 
 			// 메세지 전달 함수 호출
